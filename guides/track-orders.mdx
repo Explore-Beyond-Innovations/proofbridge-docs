@@ -1,5 +1,6 @@
 ---
 title: "Track and monitor the status of your bridge orders"
+sidebarTitle: "Track orders"
 description: "Monitor a pending bridge transfer's status, understand order lifecycle states, find transaction hashes on both chains, and troubleshoot stuck orders."
 ---
 
@@ -22,8 +23,18 @@ Each order detail page shows:
 
 Orders progress through the following states in sequence:
 
-```
-Created → Locked → Proof generated → Settled
+```mermaid
+stateDiagram-v2
+    [*] --> Created: Deposit tx confirmed on source chain
+    Created --> Locked: Bridger sends /confirm callback;<br/>Maker locks liquidity
+    Locked --> ProofGenerated: Noir circuit produces ZK proof
+    ProofGenerated --> Settled: Proof verified on both chains;<br/>funds released
+    Settled --> [*]
+
+    Created --> Error: Pre-auth rejected<br/>(no on-chain funds at risk)
+    Locked --> Error: Proof generation fails<br/>after retry budget
+    ProofGenerated --> Error: On-chain verification fails
+    Error --> [*]
 ```
 
 | Status | What it means |
@@ -49,7 +60,6 @@ Your deposit transaction hash is available immediately after you submit the depo
 Paste the hash into the appropriate block explorer:
 
 - Ethereum Sepolia: [https://sepolia.etherscan.io](https://sepolia.etherscan.io)
-- Hedera Testnet: [https://hashscan.io/testnet](https://hashscan.io/testnet)
 - Stellar Testnet: [https://stellar.expert/explorer/testnet](https://stellar.expert/explorer/testnet)
 
 ### Destination chain transaction
@@ -62,7 +72,7 @@ The ProofBridge relayer uses a pre-authorization model — it does not poll chai
 
 <Steps>
   <Step title="Wait for the deposit to confirm">
-    Check the source-chain block explorer to confirm your deposit transaction has been included in a block. Sepolia typically takes 15–60 seconds; Hedera and Stellar may vary.
+    Check the source-chain block explorer to confirm your deposit transaction has been included in a block. Sepolia typically takes 15–60 seconds; Stellar ledgers close every ~5 seconds.
   </Step>
 
   <Step title="Open the order detail page">

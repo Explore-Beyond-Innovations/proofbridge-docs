@@ -1,103 +1,184 @@
 ---
-title: "How ProofBridge works: P2P bridging and ZK settlement"
-description: "Learn how peer-to-peer cross-chain transfers work on ProofBridge, from posting a liquidity ad to ZK-proof settlement on both chains simultaneously."
+title: "How ProofBridge works"
+sidebarTitle: "How it works"
+description: "The ProofBridge architecture, the 12-step cross-chain flow, and the role each component plays — from liquidity ads to ZK-verified settlement on both chains."
 ---
 
-ProofBridge replaces the trusted intermediaries found in traditional bridges with a direct peer-to-peer match between two parties: a **Maker** who provides liquidity and a **Bridger** who wants to transfer assets. The trade settles trustlessly because neither party can receive funds unless a zero-knowledge proof confirms both sides of the transaction are valid.
+ProofBridge settles a cross-chain transfer between two users directly. A **Maker** posts liquidity on their chain, a **Bridger** deposits on their chain, and both sides unlock only after a zero-knowledge proof confirms the deposit on the counterparty chain actually happened.
 
-## The two roles
+This page walks through the architecture and the end-to-end data flow.
 
-### Makers
+## Architecture at a glance
 
-Makers are liquidity providers. You deposit tokens on one chain and publish a **liquidity ad** listing the route, amount, and rate you offer. Your funds stay locked in the **AdManager** contract — they are not accessible to anyone else until a valid ZK proof confirms a completed trade.
+```mermaid
+flowchart TB
+    FE["Frontend (React)<br/>wallet · orders · ads"]:::ui
 
-Becoming a Maker is how you earn fees on ProofBridge. Every time a Bridger uses your liquidity to settle a transfer, you receive their deposited tokens on the source chain.
+    subgraph SRC["Source chain (Bridger's chain)"]
+        OP["OrderPortal<br/>Bridger deposits here"]
+        MMS["MerkleManager<br/>(MMR tree)"]
+        VS["Verifier<br/>(on-chain ZK check)"]
+        WNS["wNativeToken<br/>(auto wrap / unwrap)"]
+        OP --> MMS
+        OP --> VS
+        OP --> WNS
+    end
 
-### Bridgers
+    subgraph DST["Destination chain (Maker's chain)"]
+        AM["AdManager<br/>Maker's liquidity lives here"]
+        MMD["MerkleManager<br/>(MMR tree)"]
+        VD["Verifier<br/>(on-chain ZK check)"]
+        WND["wNativeToken<br/>(auto wrap / unwrap)"]
+        AM --> MMD
+        AM --> VD
+        AM --> WND
+    end
 
-Bridgers are users who want to move assets from one chain to another. You browse the marketplace of liquidity ads, select one that matches your route and amount, then deposit tokens on the **OrderPortal** contract on the source chain. Once the deposit is confirmed and the proof is verified, your destination-chain tokens are released automatically.
+    RL["Backend Relayer<br/>(Node.js, pre-auth phase)"]:::relayer
+    PC["Proof Circuits (Noir)<br/>deposit circuit · auth circuit"]:::proof
 
-## End-to-end bridging flow
+    FE -->|orders / ads / wallet auth| OP
+    FE -->|orders / ads / wallet auth| AM
+    FE -->|callbacks| RL
+
+    OP -->|events| RL
+    AM -->|events| RL
+
+    RL -->|Merkle proof + order data| PC
+    PC -->|ZK proof| RL
+
+    RL -->|unlock proof| OP
+    RL -->|unlock proof| AM
+
+    classDef ui fill:#dbeafe,stroke:#1e40af,color:#000
+    classDef relayer fill:#fef3c7,stroke:#a16207,color:#000
+    classDef proof fill:#d1fae5,stroke:#065f46,color:#000
+```
+
+### What each component does
+
+<CardGroup cols={2}>
+  <Card title="Frontend (React)" icon="browser">
+    Connects wallets, authenticates via SIWE (EVM) or SEP-10 (Stellar), and lets users create ads, submit orders, and monitor status.
+  </Card>
+  <Card title="OrderPortal" icon="arrow-right-arrow-left">
+    On the source chain. Bridgers call `createOrder` to deposit tokens and register the order hash with the MerkleManager. `unlock` pays the Maker's recipient once the ZK proof verifies.
+  </Card>
+  <Card title="AdManager" icon="store">
+    On the destination chain. Makers call `createAd` and `fundAd` to offer liquidity, then `lockForOrder` to reserve funds against a specific order. `unlock` pays the Bridger's recipient once the ZK proof verifies.
+  </Card>
+  <Card title="MerkleManager" icon="tree">
+    Maintains an append-only Merkle Mountain Range of every order hash. Both AdManager and OrderPortal hold `MANAGER_ROLE` to append entries.
+  </Card>
+  <Card title="Verifier" icon="shield-check">
+    Checks UltraHonk zero-knowledge proofs on-chain. AdManager and OrderPortal call it internally during every `unlock`.
+  </Card>
+  <Card title="wNativeToken" icon="coins">
+    Wraps the chain's native asset (ETH, XLM) on deposit and unwraps on withdrawal, so native-token bridging works through the same ERC-20-style interface.
+  </Card>
+  <Card title="Backend Relayer" icon="server">
+    During the pre-auth phase, coordinates the flow: pre-authorizes trades, watches for on-chain callbacks, triggers proof generation, and submits proofs to both chains. Cannot redirect funds — only submit proofs.
+  </Card>
+  <Card title="Proof Circuits (Noir)" icon="shield">
+    The **deposit circuit** validates the order hash, checks MMR inclusion, and verifies nullifiers. The **auth circuit** (in progress) aggregates Maker + Bridger BLS signatures.
+  </Card>
+</CardGroup>
+
+## The 12-step cross-chain flow
+
+The scenario below follows a single transfer end-to-end. Each step is what actually happens on-chain or in the relayer.
 
 <Steps>
-  <Step title="Maker posts a liquidity ad">
-    The Maker creates an ad on the **AdManager** contract on their chosen chain, locking the destination-chain tokens they want to provide. The ad specifies the token pair, the available amount, and the exchange rate. It appears in the ProofBridge marketplace for Bridgers to discover.
+  <Step title="Maker creates an ad on the destination chain">
+    The Maker calls `createAd` on **AdManager**, locking their liquidity against a specific route (for example, wETH on Stellar for ETH on Sepolia). The ad becomes discoverable in the marketplace.
   </Step>
-  <Step title="Bridger requests authorization">
-    Before depositing, the Bridger requests a pre-authorization from the relayer. This step confirms the ad is still available and that the trade parameters are valid. The relayer returns a signed approval.
+  <Step title="Bridger requests pre-authorization">
+    Before submitting an on-chain order, the Bridger asks the **backend relayer** to pre-authorize the trade. The relayer validates that the ad is still open, the route is configured, and the parameters are sane.
   </Step>
-  <Step title="Bridger creates an order on-chain">
-    With the pre-authorization in hand, the Bridger deposits source-chain tokens into the **OrderPortal** contract. This creates a cryptographically signed order on-chain. The contract records the order hash in a Merkle Mountain Range (MMR) tree — a tamper-proof log of all deposits on that chain.
+  <Step title="Relayer returns a signed approval">
+    The relayer returns a pre-authorization back to the user, which they include when creating the order on-chain. This is the transitional gate that the upcoming BLS aggregation layer replaces — see the [roadmap](/reference/roadmap).
   </Step>
-  <Step title="Maker locks liquidity for the order">
-    The Maker is notified of the Bridger's deposit and locks the corresponding amount from their ad against the specific order on the **AdManager** contract. The Maker's chain also records this commitment in its own MMR tree.
+  <Step title="Bridger creates the order on the source chain">
+    The Bridger calls `createOrder` on **OrderPortal**, depositing source-chain tokens. Native tokens are automatically wrapped through `wNativeToken`. The deposit is now locked in the contract.
   </Step>
-  <Step title="Zero-knowledge proof is generated">
-    The relayer fetches the Merkle proof (evidence that the deposit exists in the on-chain tree) and passes it to the ZK proof circuit. The circuit produces a cryptographic proof that:
+  <Step title="OrderPortal appends the order hash to the source-chain MMR">
+    Inside the same transaction, OrderPortal appends the EIP-712 order hash to the source chain's **MerkleManager** MMR tree. The tree is append-only, so the record is permanent and Merkle-provable.
+  </Step>
+  <Step title="User triggers the relayer callback">
+    Once the source-chain transaction confirms, the user triggers a callback to the relayer. The relayer checks the confirmation on-chain — it does not trust a self-reported status.
+  </Step>
+  <Step title="Relayer fetches Merkle proof + order data">
+    The relayer pulls the MMR inclusion proof for the order hash plus the raw order data from the source chain. These are the inputs the proof circuit needs.
+  </Step>
+  <Step title="Relayer runs the deposit proof circuit">
+    The relayer invokes the Noir **deposit circuit**. The circuit:
 
-    - The deposit is genuinely recorded in the source chain's MMR tree.
-    - The order hash, amounts, and recipients match the agreed terms.
-    - The proof cannot be replayed — a unique nullifier is consumed once the proof is used.
+    - Recomputes the order hash from the struct fields and checks it matches.
+    - Validates the MMR inclusion proof against the claimed root.
+    - Verifies the nullifier is unused.
+    - Outputs a compact ZK proof.
 
-    None of the private data (secrets or individual transaction details) is revealed in the proof.
+    No private data is revealed in the proof — only that the conditions hold.
   </Step>
-  <Step title="Both chains settle simultaneously">
-    The relayer submits the proof to both chains:
-
-    - On the **AdManager** (destination chain): the proof is verified and the Maker's locked tokens are released to the Bridger's designated recipient.
-    - On the **OrderPortal** (source chain): the proof is verified and the Bridger's deposited tokens are released to the Maker's designated recipient.
-
-    Both unlocks are independently verifiable. Neither party can receive funds without the proof passing on-chain verification on their respective chain.
+  <Step title="Relayer submits the proof to AdManager (destination chain)">
+    The relayer calls `AdManager.unlock(proof, ...)` on the destination chain.
+  </Step>
+  <Step title="Destination chain verifies and pays the Bridger">
+    AdManager's internal **Verifier** checks the proof. On success, the Maker's locked liquidity is released to the Bridger's recipient address on the destination chain.
+  </Step>
+  <Step title="Relayer submits the proof to OrderPortal (source chain)">
+    The relayer calls `OrderPortal.unlock(proof, ...)` on the source chain with the corresponding proof for the other side of the trade.
+  </Step>
+  <Step title="Source chain verifies and pays the Maker">
+    OrderPortal's internal **Verifier** checks the proof. On success, the Bridger's deposited tokens are released to the Maker's recipient address on the source chain. The trade is complete.
   </Step>
 </Steps>
 
 <Note>
-  Settlement on both chains is not a single atomic transaction — the relayer submits proofs to each chain separately. However, because both proofs reference the same order hash and nullifier, neither party can receive funds twice or claim funds without completing their side.
+  Settlement on the two chains is not a single atomic transaction — the relayer submits a proof to each chain independently. Atomicity comes from the fact that both proofs reference the same order hash and nullifier: neither party can receive funds twice, and neither can receive funds without the opposite side's deposit being proven.
 </Note>
 
-## What zero-knowledge proofs do for you
-
-You do not need to understand the cryptography to use ProofBridge, but it helps to know what the proofs protect:
+## What zero-knowledge proofs give you
 
 <CardGroup cols={2}>
   <Card title="Trustless verification" icon="shield-check">
-    The on-chain verifier confirms that a deposit really happened and the terms match — without trusting the relayer's word. The proof is the only thing that unlocks funds.
+    The on-chain Verifier confirms that the deposit really happened and the terms match, without trusting the relayer. The proof is the only thing that unlocks funds.
   </Card>
   <Card title="Replay prevention" icon="rotate-left">
-    Each proof includes a unique nullifier. Once a proof is used to settle a trade, the same proof cannot be submitted again, preventing double-spending.
+    Each proof consumes a unique nullifier. Once used, the same proof cannot be reused to drain funds a second time.
   </Card>
-  <Card title="No private data exposed" icon="eye-slash">
-    The ZK proof confirms that conditions are met without revealing private inputs like secret values used to generate nullifiers.
+  <Card title="Tamper-proof history" icon="database">
+    Deposits are recorded in an append-only MMR tree per chain. The circuit checks inclusion against this tree, so tampering with the record would invalidate every proof that follows.
   </Card>
-  <Card title="Tamper-proof order history" icon="database">
-    Deposits are recorded in an append-only Merkle Mountain Range tree on each chain. Once recorded, the history cannot be altered — and the proof circuit checks inclusion against this tree.
+  <Card title="Chain-bound orders" icon="link">
+    EIP-712 order hashes bind the trade to a specific chain ID and contract address. A proof valid on one chain cannot be replayed on another.
   </Card>
 </CardGroup>
 
 ## Security guarantees
 
-ProofBridge's security model layers several protections:
-
-- **EIP-712 order hashes** bind the trade terms to specific chain IDs and contract addresses, preventing cross-chain or cross-contract replay attacks.
-- **Bidirectional chain linking** means each contract only accepts proofs from its configured counterpart chain. A proof from an unrecognized chain is rejected.
-- **Manager role permissions** on the Merkle tree contracts restrict which contracts can append new order hashes, preventing unauthorized entries.
-- **Collateral locking** requires Makers to have funds locked before any order is matched, guaranteeing the Bridger's destination tokens exist before the trade starts.
+- **EIP-712 order hashes** bind every trade to specific chain IDs and contract addresses, preventing cross-chain or cross-contract replay.
+- **Bidirectional chain linking** means each contract only accepts proofs from its configured counterpart chain.
+- **Manager role permissions** on MerkleManager restrict which contracts can append new order hashes.
+- **Collateral locking** requires Makers to have funds locked before any order is matched — so a Bridger's destination tokens exist before the trade starts.
 
 <Warning>
-  ProofBridge is currently in a pre-authorization (stateful relayer) phase. The relayer coordinates proof submission but cannot access or redirect funds — all fund releases require a valid on-chain proof. See the roadmap for the planned transition to a fully stateless, permissionless relayer model.
+  ProofBridge is currently in its pre-authorization phase. The relayer pre-authorizes trades and submits proofs, but cannot access or redirect funds. All fund releases require a valid on-chain proof. The [roadmap](/reference/roadmap) describes the transition to stateless, permissionless relayers via BLS signature aggregation.
 </Warning>
 
-## Supported routes
+## Next steps
 
-The currently active bridging routes are:
-
-| Source chain | Source token | Destination chain | Destination token |
-|---|---|---|---|
-| Ethereum Sepolia | ETH | Hedera Testnet | wETH |
-| Hedera Testnet | HBAR | Ethereum Sepolia | wHBAR |
-
-Stellar Testnet is also supported. Additional routes are in progress.
-
-<Tip>
-  Ready to try it? Head to the [Quickstart](/quickstart) to connect your wallet and make your first transfer.
-</Tip>
+<CardGroup cols={2}>
+  <Card title="Quickstart" icon="rocket" href="/quickstart">
+    Run your first cross-chain transfer on testnet.
+  </Card>
+  <Card title="Smart contracts" icon="file-code" href="/reference/smart-contracts">
+    Full contract reference, functions, and deployed addresses.
+  </Card>
+  <Card title="MMR commitments" icon="tree" href="/concepts/merkle-mountain-range">
+    How the append-only deposit log works.
+  </Card>
+  <Card title="Run locally" icon="docker" href="/contribute/run-locally">
+    Bootstrap the full stack on your machine.
+  </Card>
+</CardGroup>

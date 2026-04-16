@@ -1,0 +1,152 @@
+---
+title: "Roadmap"
+sidebarTitle: "Roadmap"
+description: "How ProofBridge rolls out — from the pre-authorization MVP to BLS peer consensus and the AI automation layer."
+---
+
+ProofBridge ships in stages. Each stage hardens the protocol and shrinks the scope of the backend relayer, moving the trust model closer to pure peer consensus between the two counterparties on a trade.
+
+## Where we are now
+
+We are in **Phase 2 — Proof System Expansion & Automation.** The protocol is live on testnet with a stateful pre-authorization relayer that bootstraps trust during early testing. BLS signature aggregation is the next milestone and the end-state design the protocol is being rebuilt toward.
+
+<Info>
+  The pre-auth relayer is transitional. Treat it as scaffolding — the protocol's security model is anchored on BLS peer consensus, not on the relayer.
+</Info>
+
+## Release phases
+
+<Steps>
+  <Step title="Phase 1 — Foundation & Core Design (shipped)">
+    - Base protocol architecture and cross-chain design complete.
+    - Merkle Mountain Range (MMR) implemented for deposit tracking on each chain.
+    - `AdManager` and `OrderPortal` contracts deployed and integrated.
+    - Relayer-driven proof submission pipeline working end-to-end.
+    - Proof aggregator layer established for cross-chain verification.
+    - Internal documentation and component-level specs finalized.
+  </Step>
+  <Step title="Phase 2 — Proof System Expansion & Automation (in progress)">
+    - Integrate BLS authorization signatures for Maker + Bridger trade validation.
+    - Build the AI automation layer for intelligent relayer selection and proof coordination.
+    - Extend the proof relay pipeline for batching and fault tolerance.
+    - Optimize the ProofBridge SDK and API for external developers.
+    - Finalize node and relayer configuration for public testnet rollout.
+  </Step>
+  <Step title="Phase 3 — Public Testnet & Developer Rollout">
+    - Launch a public testnet with the full cross-chain proof relay pipeline.
+    - Release the developer SDK, CLI tools, and complete documentation.
+    - Ship a dashboard for proof tracking and relayer performance metrics.
+    - Launch a bug bounty program and gather developer feedback.
+    - Establish early ecosystem partnerships with wallets and explorers.
+  </Step>
+  <Step title="Phase 4 — Mainnet Preparation & Incentive Layer">
+    - Finalize and optimize contracts for mainnet deployment.
+    - Deploy the Relayer Incentive Module for decentralized proof submissions.
+    - Run an incentivized testnet campaign to simulate real-world activity.
+    - Tune system parameters and optimize proof latency.
+    - Prepare mainnet migration scripts and a release candidate build.
+  </Step>
+  <Step title="Phase 5 — Mainnet Launch & Decentralization">
+    - Launch ProofBridge mainnet.
+    - Activate the Proof Registry and open the Relayer Network.
+    - Launch the ProofBridge DAO for governance and upgrade management.
+    - Introduce liquidity and proof-submission incentives.
+    - Expand integrations across additional L2 and cross-chain ecosystems.
+  </Step>
+</Steps>
+
+## Protocol milestones
+
+The phases above describe _when_ things ship. The milestones below describe _what_ the protocol becomes as they ship.
+
+### 1. Pre-authorization relayer — MVP (shipped)
+
+A stateful relayer pre-authorizes each trade to bootstrap trust during early testnet. The relayer:
+
+- Maintains pre-auth state for pending orders.
+- Detects on-chain deposits via user-triggered callbacks.
+- Fetches MMR inclusion proofs and triggers the deposit proof circuit.
+- Submits proofs to the destination `AdManager` and source `OrderPortal`.
+
+Single-relayer model during early testing, with MMR trees maintained per chain and ZK proof circuits for inclusion and trade-constraint validation.
+
+<Note>
+  This is a transitional stage. The relayer's role shrinks as BLS aggregation comes online in the next milestone.
+</Note>
+
+### 2. BLS signature aggregation (next)
+
+The end-state authentication model. The Maker and Bridger co-sign each order with BLS signatures. A relayer aggregates both signatures into a compact proof of agreement and submits it on-chain.
+
+Authentication moves from relayer state to cryptographic signatures, which unlocks:
+
+<CardGroup cols={2}>
+  <Card title="Stateless relayer" icon="server">
+    No per-order state to maintain. Any relayer can submit a proof as long as it has both signatures.
+  </Card>
+  <Card title="Permissionless submission" icon="user-plus">
+    Anyone can operate a relayer. Proof submission becomes an open-market role with no allowlist.
+  </Card>
+  <Card title="Multi-relayer competition" icon="users">
+    Multiple relayers can race to submit the same proof. The first valid submission wins, improving liveness.
+  </Card>
+  <Card title="Shrinking trust scope" icon="shield-halved">
+    The protocol no longer depends on a trusted relayer to validate trades. Validity is cryptographic, not operational.
+  </Card>
+</CardGroup>
+
+### 3. AI automation layer
+
+AI-driven agents run continuously on behalf of Makers and Bridgers under scoped, programmable authority. Agents never hold custody of user funds — they operate within explicit policy limits set by the user.
+
+**What agents do:**
+
+<CardGroup cols={2}>
+  <Card title="Real-time monitoring" icon="chart-line">
+    Watch open ads, incoming orders, and proof status across chains. Surface activity to the account owner as it happens.
+  </Card>
+  <Card title="Anomaly detection" icon="triangle-exclamation">
+    Flag suspicious activity, stale liquidity, or misrouted orders before they cause losses.
+  </Card>
+  <Card title="Automated matching" icon="arrows-to-circle">
+    Match incoming orders to open ads under the Maker's policy rules and trigger settlement automatically.
+  </Card>
+  <Card title="Adaptive fee optimization" icon="coins">
+    Adjust quoted rates in response to network conditions, competing ads, and gas costs.
+  </Card>
+  <Card title="Predictive liquidity provisioning" icon="droplet">
+    Rebalance liquidity across chains and token pairs ahead of anticipated demand.
+  </Card>
+  <Card title="Co-pilot relayer" icon="robot">
+    Assist human relayer operators during the permissioned phase, then run autonomously once BLS aggregation removes the trust gate.
+  </Card>
+</CardGroup>
+
+**Scoped authority model.** Each agent gets explicit, narrow permissions rather than full custody. For example:
+
+> *"This Maker agent may execute up to 100 USDC of settlement against orderHash 0xabc…, and nothing else."*
+
+Authority is bounded by token, amount, and order hash. Policies can be revoked at any time, and the underlying funds remain in the user's own contracts throughout. This is the difference between an autonomous operator and a custodial service — the agent acts, but the user still owns.
+
+**Why this works on ProofBridge.** Agent-driven automation depends on chains that expose account-abstraction primitives: scheduled execution, scoped signing authority, and programmable policy checks at the account layer. ProofBridge's current EVM (Sepolia) and Stellar integrations both support these primitives — EVM via ERC-4337-compatible account abstraction, Stellar through its native account model. Additional chains will be added as they mature.
+
+<Note>
+  The AI automation layer is on the roadmap, not in production. See [Phase 2](#release-phases) for the current integration work.
+</Note>
+
+## Further reading
+
+<CardGroup cols={2}>
+  <Card title="How it works" icon="circle-info" href="/how-it-works">
+    The architecture and the 12-step cross-chain flow today.
+  </Card>
+  <Card title="Security model" icon="shield" href="/reference/security-model">
+    Trust assumptions in the current phase and under the BLS end-state.
+  </Card>
+  <Card title="Why ProofBridge" icon="lightbulb" href="/why-proofbridge">
+    The problem space and why the peer-consensus design solves it.
+  </Card>
+  <Card title="Contribute" icon="code-branch" href="/contribute/run-locally">
+    Run the full stack locally and start shipping.
+  </Card>
+</CardGroup>

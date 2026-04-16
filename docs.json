@@ -8,9 +8,15 @@
   },
   "favicon": "https://icons.duckduckgo.com/ip3/proof-bridge.vercel.app.ico",
   "colors": {
-    "primary": "#ffffff",
-    "light": "#ffffff",
-    "dark": "#ffffff"
+    "primary": "#6366f1",
+    "light": "#a5b4fc",
+    "dark": "#4338ca"
+  },
+  "background": {
+    "colors": {
+      "light": "#ffffff",
+      "dark": "#1e1f24"
+    }
   },
   "navbar": {
     "primary": {
@@ -27,6 +33,7 @@
             "group": "Get Started",
             "pages": [
               "introduction",
+              "why-proofbridge",
               "how-it-works",
               "quickstart"
             ]
@@ -38,7 +45,8 @@
               "concepts/liquidity-ads",
               "concepts/zero-knowledge-proofs",
               "concepts/merkle-mountain-range",
-              "concepts/supported-networks"
+              "concepts/supported-networks",
+              "concepts/comparisons"
             ]
           },
           {
@@ -52,10 +60,17 @@
             ]
           },
           {
+            "group": "Contribute",
+            "pages": [
+              "contribute/run-locally"
+            ]
+          },
+          {
             "group": "Reference",
             "pages": [
               "reference/smart-contracts",
               "reference/security-model",
+              "reference/roadmap",
               "reference/faq"
             ]
           }

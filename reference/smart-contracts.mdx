@@ -1,6 +1,7 @@
 ---
 title: "ProofBridge smart contract reference and addresses"
-description: "Explore the four ProofBridge contracts, their key functions, deployed addresses on Ethereum Sepolia and Hedera Testnet, and the EIP-712 order structure."
+sidebarTitle: "Smart contracts"
+description: "Explore the four ProofBridge contracts, their key functions, deployed addresses on Ethereum Sepolia and Stellar Testnet, and the EIP-712 order structure."
 ---
 
 ProofBridge settles cross-chain transfers entirely on-chain through four contracts deployed on each supported network. Two of these — AdManager and OrderPortal — are the contracts you interact with directly. The other two — MerkleManager and Verifier — operate in the background to record order history and validate zero-knowledge proofs.
@@ -80,30 +81,38 @@ You do not call Verifier directly. AdManager and OrderPortal call it internally 
 
 ## Deployed addresses
 
+<Warning>
+  The addresses below are placeholders while we redeploy on both chains. Read the current addresses from the latest build in the [Proofbridge-Contracts GitHub Release](https://github.com/Explore-Beyond-Innovations/ProofBridge/releases/tag/latest) or the repository's `deployed.json` manifest before integrating.
+</Warning>
+
 <Tabs>
   <Tab title="Ethereum Sepolia">
     **Chain ID: 11155111**
 
     | Contract | Address | Explorer |
     |---|---|---|
-    | Verifier | `0xDc930A3b5CC073092750aE7f4FF45409B2428592` | [View on Etherscan](https://sepolia.etherscan.io/address/0xDc930A3b5CC073092750aE7f4FF45409B2428592) |
-    | MerkleManager | `0x397E7356aF447B2754D8Ea0838d285FB78F2482d` | [View on Etherscan](https://sepolia.etherscan.io/address/0x397E7356aF447B2754D8Ea0838d285FB78F2482d) |
-    | wNativeToken (WETH) | `0xf635e2661c950c7947a13d03e16076F7b5aA5DbE` | [View on Etherscan](https://sepolia.etherscan.io/address/0xf635e2661c950c7947a13d03e16076F7b5aA5DbE) |
-    | AdManager | `0x366D90CB2A8606A82164C717cF1889c3ed5aE1f4` | [View on Etherscan](https://sepolia.etherscan.io/address/0x366D90CB2A8606A82164C717cF1889c3ed5aE1f4) |
-    | OrderPortal | `0xF1C313faAD40ccAeDb4Fd3e7C838993569E2572C` | [View on Etherscan](https://sepolia.etherscan.io/address/0xF1C313faAD40ccAeDb4Fd3e7C838993569E2572C) |
-    | ProofBridge Token | `0x1B62aDdB315CC98ab4625ffA170c1BC5C75F9da7` | [View on Etherscan](https://sepolia.etherscan.io/address/0x1B62aDdB315CC98ab4625ffA170c1BC5C75F9da7) |
+    | Verifier | `0x0000000000000000000000000000000000000001` | [View on Etherscan](https://sepolia.etherscan.io/) |
+    | MerkleManager | `0x0000000000000000000000000000000000000002` | [View on Etherscan](https://sepolia.etherscan.io/) |
+    | AdManager | `0x0000000000000000000000000000000000000003` | [View on Etherscan](https://sepolia.etherscan.io/) |
+    | OrderPortal | `0x0000000000000000000000000000000000000004` | [View on Etherscan](https://sepolia.etherscan.io/) |
+    | wNativeToken (WETH) | `0x0000000000000000000000000000000000000005` | [View on Etherscan](https://sepolia.etherscan.io/) |
+    | wXLM | `0x0000000000000000000000000000000000000006` | [View on Etherscan](https://sepolia.etherscan.io/) |
+    | ProofBridge Token | `0x0000000000000000000000000000000000000007` | [View on Etherscan](https://sepolia.etherscan.io/) |
   </Tab>
-  <Tab title="Hedera Testnet">
-    **Chain ID: 296**
+  <Tab title="Stellar Testnet">
+    **Network passphrase:** `Test SDF Network ; September 2015`
 
-    | Contract | Address | Explorer |
+    Soroban contract IDs are strkeys — base32-encoded 56-character identifiers starting with `C`.
+
+    | Contract | Contract ID | Explorer |
     |---|---|---|
-    | Verifier | `0xDbf6dA1aBD40f7b7eA7B935663D4F78325930e48` | [View on HashScan](https://hashscan.io/testnet/contract/0xDbf6dA1aBD40f7b7eA7B935663D4F78325930e48) |
-    | MerkleManager | `0x04cD7aCc919F2916Ae0eAEa7BFc40962BC99AC8E` | [View on HashScan](https://hashscan.io/testnet/contract/0x04cD7aCc919F2916Ae0eAEa7BFc40962BC99AC8E) |
-    | wNativeToken (WHBAR) | `0xb1f616b8134f602c3bb465fb5b5e6565ccad37ed` | [View on HashScan](https://hashscan.io/testnet/contract/0xb1f616b8134f602c3bb465fb5b5e6565ccad37ed) |
-    | AdManager | `0x9AeF534c50D4BAA10c2cBA14590a37798Ea4c768` | [View on HashScan](https://hashscan.io/testnet/contract/0x9AeF534c50D4BAA10c2cBA14590a37798Ea4c768) |
-    | OrderPortal | `0x4C5dDf1CC71a709704d26648f71bD3E629BE5914` | [View on HashScan](https://hashscan.io/testnet/contract/0x4C5dDf1CC71a709704d26648f71bD3E629BE5914) |
-    | ProofBridge Token | `0x9318E8f8C1F7Bff8c00A062F80b391866fBE8d87` | [View on HashScan](https://hashscan.io/testnet/contract/0x9318E8f8C1F7Bff8c00A062F80b391866fBE8d87) |
+    | Verifier | `CA…PENDING_REDEPLOY` | [StellarExpert](https://stellar.expert/explorer/testnet) |
+    | MerkleManager | `CA…PENDING_REDEPLOY` | [StellarExpert](https://stellar.expert/explorer/testnet) |
+    | AdManager | `CA…PENDING_REDEPLOY` | [StellarExpert](https://stellar.expert/explorer/testnet) |
+    | OrderPortal | `CA…PENDING_REDEPLOY` | [StellarExpert](https://stellar.expert/explorer/testnet) |
+    | wNativeToken (wrapped XLM) | `CA…PENDING_REDEPLOY` | [StellarExpert](https://stellar.expert/explorer/testnet) |
+    | wETH (SEP-41) | `CA…PENDING_REDEPLOY` | [StellarExpert](https://stellar.expert/explorer/testnet) |
+    | ProofBridge Token | `CA…PENDING_REDEPLOY` | [StellarExpert](https://stellar.expert/explorer/testnet) |
   </Tab>
 </Tabs>
 

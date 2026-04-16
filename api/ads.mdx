@@ -1,9 +1,10 @@
 ---
 title: "Ads API: Create and Manage Liquidity Advertisements"
+sidebarTitle: "Ads"
 description: "Create, fund, update, and close ProofBridge liquidity advertisements. Ads are the on-chain liquidity pools that bridgers discover and trade against."
 ---
 
-Liquidity advertisements (ads) are the core primitive of the ProofBridge marketplace. A Maker creates an ad to signal that they are willing to provide liquidity on a specific cross-chain route — for example, locking USDC on Hedera so bridgers can receive USDC on Ethereum. The ad lifecycle moves through several states (`ACTIVE`, `PAUSED`, `EXHAUSTED`, `CLOSED`) as the Maker manages their liquidity.
+Liquidity advertisements (ads) are the core primitive of the ProofBridge marketplace. A Maker creates an ad to signal that they are willing to provide liquidity on a specific cross-chain route — for example, locking wETH on Stellar so bridgers can receive ETH on Ethereum. The ad lifecycle moves through several states (`ACTIVE`, `PAUSED`, `EXHAUSTED`, `CLOSED`) as the Maker manages their liquidity.
 
 Most ad endpoints return blockchain transaction data (contract address, signature, auth token) that your application must submit to the smart contract to finalize the operation on-chain. After the on-chain transaction is confirmed, call the corresponding `/confirm` endpoint to notify the relayer.
 

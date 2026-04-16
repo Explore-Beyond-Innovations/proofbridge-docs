@@ -1,5 +1,6 @@
 ---
 title: "Quickstart: complete your first ProofBridge transfer"
+sidebarTitle: "Quickstart"
 description: "Connect your wallet and complete your first cross-chain transfer on ProofBridge in minutes. This guide walks you through the Bridger flow step by step."
 ---
 
@@ -9,12 +10,12 @@ This guide walks you through making your first cross-chain transfer on ProofBrid
 
 Before you start, make sure you have:
 
-- **A compatible wallet.** MetaMask (or any EIP-1193-compatible browser extension) for EVM chains, or a Stellar wallet for Stellar Testnet.
-- **Testnet funds.** You need either Sepolia ETH or Hedera Testnet HBAR to cover the deposit and gas. Get Sepolia ETH from a public faucet, or Hedera Testnet HBAR from the [Hedera Developer Portal](https://portal.hedera.com/).
+- **A compatible wallet.** MetaMask (or any EIP-1193-compatible browser extension) for Sepolia, or a Stellar wallet (Freighter, xBull, Albedo) for Stellar Testnet.
+- **Testnet funds.** You need either Sepolia ETH or Stellar Testnet XLM to cover the deposit and gas. Get Sepolia ETH from a public faucet, or Stellar Testnet XLM from [friendbot](https://friendbot.stellar.org/).
 - **A modern browser.** The ProofBridge web app works in any browser that supports wallet extensions.
 
 <Note>
-  ProofBridge is live on testnets only. Do not send mainnet funds. Use Sepolia ETH or Hedera Testnet HBAR.
+  ProofBridge is live on testnets only. Do not send mainnet funds. Use Sepolia ETH or Stellar Testnet XLM.
 </Note>
 
 ## Step-by-step: your first transfer
@@ -34,10 +35,10 @@ Before you start, make sure you have:
 
         Once connected, you will be asked to sign a **Sign-In With Ethereum (SIWE)** message. This authenticates your session — it is a signature only, not a transaction, so it costs no gas.
 
-        Make sure your wallet is set to **Ethereum Sepolia** (chain ID 11155111) or **Hedera Testnet** (chain ID 296).
+        Make sure your wallet is set to **Ethereum Sepolia** (chain ID 11155111).
       </Tab>
       <Tab title="Stellar wallet">
-        Select your Stellar wallet from the connection options. You will be prompted to sign an authentication message to verify ownership of your address.
+        Select your Stellar wallet (Freighter, xBull, or Albedo) from the connection options. You will be prompted to sign a **SEP-10** authentication challenge to verify ownership of your address.
 
         Make sure your wallet is connected to **Stellar Testnet**.
       </Tab>
@@ -46,7 +47,7 @@ Before you start, make sure you have:
     After signing, your wallet address appears in the header and your session is active.
   </Step>
   <Step title="Select a liquidity ad">
-    Browse the marketplace for an ad that matches the route you want. For example, to move ETH from Sepolia to Hedera, look for an ad offering **ETH → wETH** (Sepolia to Hedera).
+    Browse the marketplace for an ad that matches the route you want. For example, to move ETH from Sepolia to Stellar, look for an ad offering **ETH → wETH** (Sepolia to Stellar).
 
     Each ad card shows:
     - The source and destination chain
@@ -73,7 +74,7 @@ Before you start, make sure you have:
 
     Your wallet will prompt you to sign or approve one or two transactions:
 
-    1. **Token approval** (if required) — grants the OrderPortal contract permission to transfer your tokens. This is a standard ERC-20 approval and only appears for ERC-20 tokens, not native ETH or HBAR.
+    1. **Token approval** (if required) — grants the OrderPortal contract permission to transfer your tokens. This only appears for non-native tokens. On Sepolia this is a standard ERC-20 `approve`; on Stellar it is a SEP-41 authorization.
     2. **Create order** — deposits your tokens into the OrderPortal contract and records the order on-chain.
 
     Confirm both prompts in your wallet. Wait for the deposit transaction to be confirmed on the source chain — this usually takes a few seconds to a minute depending on network congestion.
@@ -94,7 +95,7 @@ Before you start, make sure you have:
     You will see the **Completed** status on your order and can verify the receipt by checking your wallet balance or the destination chain's block explorer.
 
     <Tip>
-      For Hedera, use [HashScan](https://hashscan.io/testnet) to verify your transaction. For Sepolia, use [Etherscan](https://sepolia.etherscan.io/).
+      For Sepolia, use [Etherscan](https://sepolia.etherscan.io/) to verify your transaction. For Stellar, use [StellarExpert Testnet](https://stellar.expert/explorer/testnet).
     </Tip>
   </Step>
 </Steps>
@@ -112,7 +113,7 @@ Before you start, make sure you have:
 
 <AccordionGroup>
   <Accordion title="How long does a transfer take?">
-    Most transfers complete within a few minutes. The main variable is block confirmation time on the source chain. Sepolia confirmations typically take under a minute; Hedera is faster. Proof generation adds a small amount of additional time.
+    Most transfers complete within a few minutes. The main variable is block confirmation time on the source chain. Sepolia confirmations typically take under a minute; Stellar ledgers close every ~5 seconds. Proof generation adds a small amount of additional time.
   </Accordion>
   <Accordion title="What if no liquidity ad matches my route?">
     If there are no ads for your desired route or the available amounts are too small, you can check back later as Makers add new ads over time. You can also become a Maker yourself and post liquidity on the route you need.

@@ -1,5 +1,6 @@
 ---
 title: "Routes API: Browse Supported Cross-Chain Token Pairs"
+sidebarTitle: "Routes"
 description: "Query ProofBridge cross-chain routes — the directional token pair mappings that define which tokens can be bridged between which chains."
 ---
 
@@ -28,7 +29,7 @@ List available cross-chain routes with optional filters. Returns a paginated lis
 </ParamField>
 
 <ParamField query="adChainId" type="string">
-  Filter by the source chain ID (e.g., `"296"` for Hedera Testnet).
+  Filter by the source chain ID (e.g., `"11155111"` for Ethereum Sepolia, `"1000001"` for Stellar Testnet).
 </ParamField>
 
 <ParamField query="orderChainId" type="string">
@@ -69,24 +70,24 @@ List available cross-chain routes with optional filters. Returns a paginated lis
       "updatedAt": "2026-01-10T00:00:00.000Z",
       "adToken": {
         "id": "d290f1ee-6c54-4b01-90e6-d701748f0851",
-        "symbol": "USDC",
-        "name": "USD Coin",
-        "address": "0xA0b86a33E6441cD3b27CA2E60b05C5FBA3B6dE9B",
-        "decimals": 6,
-        "kind": "ERC20",
+        "symbol": "wETH",
+        "name": "Wrapped ETH",
+        "address": "CAXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+        "decimals": 18,
+        "kind": "SEP41",
         "chain": {
           "id": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
-          "name": "Hedera Testnet",
-          "chainId": "296"
+          "name": "Stellar Testnet",
+          "chainId": "1000001"
         }
       },
       "orderToken": {
         "id": "d290f1ee-6c54-4b01-90e6-d701748f0852",
-        "symbol": "USDC",
-        "name": "USD Coin",
-        "address": "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238",
-        "decimals": 6,
-        "kind": "ERC20",
+        "symbol": "ETH",
+        "name": "Ethereum",
+        "address": "0x0000000000000000000000000000000000000000",
+        "decimals": 18,
+        "kind": "NATIVE",
         "chain": {
           "id": "a3bb189e-8bf9-3888-9b8c-4c2e38a29afc",
           "name": "Ethereum Sepolia",
@@ -125,24 +126,24 @@ Returns a single [Route object](#route-object-fields).
   "updatedAt": "2026-01-10T00:00:00.000Z",
   "adToken": {
     "id": "d290f1ee-6c54-4b01-90e6-d701748f0851",
-    "symbol": "USDC",
-    "name": "USD Coin",
-    "address": "0xA0b86a33E6441cD3b27CA2E60b05C5FBA3B6dE9B",
-    "decimals": 6,
-    "kind": "ERC20",
+    "symbol": "wETH",
+    "name": "Wrapped ETH",
+    "address": "CAXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+    "decimals": 18,
+    "kind": "SEP41",
     "chain": {
       "id": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
-      "name": "Hedera Testnet",
-      "chainId": "296"
+      "name": "Stellar Testnet",
+      "chainId": "0"
     }
   },
   "orderToken": {
     "id": "d290f1ee-6c54-4b01-90e6-d701748f0852",
-    "symbol": "USDC",
-    "name": "USD Coin",
-    "address": "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238",
-    "decimals": 6,
-    "kind": "ERC20",
+    "symbol": "ETH",
+    "name": "Ethereum",
+    "address": "0x0000000000000000000000000000000000000000",
+    "decimals": 18,
+    "kind": "NATIVE",
     "chain": {
       "id": "a3bb189e-8bf9-3888-9b8c-4c2e38a29afc",
       "name": "Ethereum Sepolia",

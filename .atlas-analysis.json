@@ -76,7 +76,7 @@
     "Peer-to-peer cross-chain token transfers without centralized relayers",
     "Zero-knowledge proof validation for trustless settlement",
     "Liquidity advertisement marketplace for makers",
-    "Multi-chain support: Ethereum Sepolia, Hedera Testnet, and Stellar",
+    "Multi-chain support: Ethereum Sepolia and Stellar Testnet",
     "EIP-712 signed orders bound cryptographically to chain and contract",
     "Merkle Mountain Range (MMR) for tamper-proof order history",
     "SIWE (Sign-In With Ethereum) wallet authentication",

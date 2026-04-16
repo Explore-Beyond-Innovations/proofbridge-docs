@@ -1,12 +1,13 @@
 ---
 title: "Bridge tokens across chains using ProofBridge transfers"
+sidebarTitle: "Bridge tokens"
 description: "Step-by-step guide to making a cross-chain transfer as a Bridger: browse liquidity ads, deposit funds, and receive destination tokens via ZK proof."
 ---
 
 Bridging tokens on ProofBridge means transferring assets from one blockchain to another through a peer-to-peer match with a liquidity provider (Maker). You deposit your source-chain tokens into the OrderPortal contract, the Maker locks their destination-chain tokens against your order, and a zero-knowledge proof settles both sides trustlessly. The entire process typically completes within a few minutes.
 
 <Note>
-  ProofBridge currently operates on testnet (Ethereum Sepolia, Hedera Testnet, and Stellar). Use testnet funds only. Get Sepolia ETH from the [Sepolia faucet](https://sepoliafaucet.com) and HBAR from the [Hedera portal](https://portal.hedera.com).
+  ProofBridge currently operates on testnet (Ethereum Sepolia and Stellar Testnet). Use testnet funds only. Get Sepolia ETH from a public faucet and Stellar Testnet XLM from [friendbot](https://friendbot.stellar.org/).
 </Note>
 
 ## Prerequisites
@@ -49,7 +50,7 @@ Bridging tokens on ProofBridge means transferring assets from one blockchain to 
     - **Recipient address**: The wallet address on the destination chain that should receive the tokens.
 
     <Note>
-      If you are sending native ETH or HBAR, it is automatically wrapped to WETH or WHBAR on deposit. You do not need to wrap tokens manually before bridging.
+      If you are sending native ETH or XLM, it is automatically wrapped to WETH or WXLM on deposit. You do not need to wrap tokens manually before bridging.
     </Note>
   </Step>
 

@@ -1,5 +1,6 @@
 ---
 title: "Merkle Mountain Range: how deposits are recorded"
+sidebarTitle: "Merkle Mountain Range"
 description: "ProofBridge records every deposit in an append-only cryptographic structure called a Merkle Mountain Range, enabling efficient ZK inclusion proofs."
 ---
 
@@ -9,13 +10,44 @@ Every time a Bridger deposits tokens or a Maker locks funds for an order, that e
 
 An MMR is a type of Merkle tree designed for append-only workloads. Instead of a single balanced binary tree, an MMR consists of a series of perfect binary "peaks" that grow as new leaves are added. Each leaf is a deposit or lock event; each internal node is the hash of its two children.
 
-```
-Adding 10 deposits creates peaks like this:
+```mermaid
+flowchart TB
+    ROOT["Bagged root<br/>(stored on-chain)"]
+    P7["Peak 7<br/>hash"]
+    P14["Peak 14<br/>hash"]
+    P18["Peak 18<br/>leaf"]
+    N3["3"]
+    N6["6"]
+    N10["10"]
+    N13["13"]
+    L1["Leaf 1"]
+    L2["Leaf 2"]
+    L4["Leaf 4"]
+    L5["Leaf 5"]
+    L8["Leaf 8"]
+    L9["Leaf 9"]
+    L11["Leaf 11"]
+    L12["Leaf 12"]
+    L16["Leaf 16"]
+    L17["Leaf 17"]
 
-             15
-       7             14
-    3     6      10      13      18
-  1  2  4  5   8  9   11  12  16  17
+    ROOT --> P7
+    ROOT --> P14
+    ROOT --> P18
+    P7 --> N3
+    P7 --> N6
+    N3 --> L1
+    N3 --> L2
+    N6 --> L4
+    N6 --> L5
+    P14 --> N10
+    P14 --> N13
+    N10 --> L8
+    N10 --> L9
+    N13 --> L11
+    N13 --> L12
+    P18 --> L16
+    P18 --> L17
 ```
 
 The peaks are combined into a single **root hash** using an iterative process called peak bagging. This root is stored on-chain after every new deposit and is the value the ZK circuit checks inclusion proofs against.
@@ -40,7 +72,7 @@ Your deposit is verifiable by anyone who knows the root hash, without needing to
 
 ## Cross-chain compatibility
 
-ProofBridge maintains an independent MMR on every supported chain. The EVM implementation (Ethereum Sepolia, Hedera Testnet) and the Stellar implementation both use the same Poseidon2 hash function and the same tree construction algorithm. As a result, both implementations produce **identical root hashes** for identical input data.
+ProofBridge maintains an independent MMR on every supported chain. The EVM implementation (Ethereum Sepolia) and the Stellar implementation both use the same Poseidon2 hash function and the same tree construction algorithm. As a result, both implementations produce **identical root hashes** for identical input data.
 
 This cross-chain equivalence is what makes verification possible: a proof generated against Chain A's MMR root can be checked by Chain B's `Verifier` contract, because both chains agree on how roots are computed.
 

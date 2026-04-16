@@ -1,12 +1,13 @@
 ---
 title: "How to connect your wallet to ProofBridge securely"
+sidebarTitle: "Connect wallet"
 description: "Connect an EVM wallet (MetaMask or WalletConnect) or a Stellar wallet to ProofBridge and authenticate using a signed SIWE message."
 ---
 
-Before you can bridge tokens or provide liquidity, you need to connect a wallet. ProofBridge supports EVM-compatible wallets (such as MetaMask) for Ethereum Sepolia and Hedera Testnet, and Stellar-native wallets for the Stellar network. Authentication uses Sign-In With Ethereum (SIWE) — you sign a message to prove wallet ownership, not a transaction, so no gas is spent during login.
+Before you can bridge tokens or provide liquidity, you need to connect a wallet. ProofBridge supports EVM-compatible wallets (such as MetaMask) for Ethereum Sepolia, and Stellar-native wallets (Freighter, xBull, Albedo) for Stellar Testnet. Authentication uses Sign-In With Ethereum (SIWE) for EVM wallets and SEP-10 challenge signing for Stellar wallets — you sign a message to prove wallet ownership, not a transaction, so no gas is spent during login.
 
 <Note>
-  ProofBridge is live on testnet. Make sure your wallet has testnet funds before connecting. Get Sepolia ETH from the [Sepolia faucet](https://sepoliafaucet.com) and HBAR from the [Hedera faucet](https://portal.hedera.com).
+  ProofBridge is live on testnet. Make sure your wallet has testnet funds before connecting. Get Sepolia ETH from a public faucet and Stellar Testnet XLM from [friendbot](https://friendbot.stellar.org/).
 </Note>
 
 ## Prerequisites
@@ -16,7 +17,7 @@ Before you can bridge tokens or provide liquidity, you need to connect a wallet.
 
 <Tabs>
   <Tab title="EVM (MetaMask / WalletConnect)">
-    Use this flow for Ethereum Sepolia or Hedera Testnet.
+    Use this flow for Ethereum Sepolia.
 
     <Steps>
       <Step title="Open ProofBridge">
@@ -40,7 +41,7 @@ Before you can bridge tokens or provide liquidity, you need to connect a wallet.
       </Step>
 
       <Step title="Switch to the correct network">
-        If your wallet is not already on Ethereum Sepolia or Hedera Testnet, ProofBridge prompts you to switch. Click **Switch network** in the prompt and approve the network change in your wallet.
+        If your wallet is not already on Ethereum Sepolia, ProofBridge prompts you to switch. Click **Switch network** in the prompt and approve the network change in your wallet.
       </Step>
 
       <Step title="Sign the authentication message">

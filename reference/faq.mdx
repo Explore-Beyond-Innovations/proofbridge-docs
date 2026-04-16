@@ -1,5 +1,6 @@
 ---
 title: "Frequently asked questions about using ProofBridge"
+sidebarTitle: "FAQ"
 description: "Answers to common questions about ProofBridge: supported wallets, transfer times, fees, stuck transfers, token support, privacy, and future chains."
 ---
 
@@ -7,7 +8,7 @@ Find answers to the most common questions about using ProofBridge. If your quest
 
 <AccordionGroup>
   <Accordion title="Is ProofBridge live on mainnet?">
-    Not yet. ProofBridge is currently deployed on **Ethereum Sepolia** and **Hedera Testnet** only. These are public testnets, so you can explore the full bridging experience without using real funds. Mainnet deployment is on the roadmap and will follow a thorough security review process.
+    Not yet. ProofBridge is currently deployed on **Ethereum Sepolia** and **Stellar Testnet** only. These are public testnets, so you can explore the full bridging experience without using real funds. Mainnet deployment is on the [roadmap](/reference/roadmap) and will follow a thorough security review process.
   </Accordion>
 
   <Accordion title="Do I need to register or create an account?">
@@ -15,12 +16,12 @@ Find answers to the most common questions about using ProofBridge. If your quest
   </Accordion>
 
   <Accordion title="What wallets are supported?">
-    ProofBridge supports any EVM-compatible wallet for Ethereum Sepolia and Hedera Testnet interactions, including:
+    ProofBridge supports any EVM-compatible wallet for Ethereum Sepolia interactions, including:
 
     - **MetaMask** — the most commonly tested wallet
     - **WalletConnect-compatible wallets** — any wallet that supports the WalletConnect protocol
 
-    For Stellar network interactions, standard Stellar wallets are supported. Make sure your wallet is connected to the correct testnet network before creating orders or ads.
+    For Stellar Testnet interactions, ProofBridge supports common Stellar wallets including **Freighter**, **xBull**, and **Albedo**. Make sure your wallet is connected to the correct testnet network before creating orders or ads.
   </Accordion>
 
   <Accordion title="How long does a bridge transfer take?">
@@ -61,11 +62,11 @@ Find answers to the most common questions about using ProofBridge. If your quest
 
     | Route | Source | Destination |
     |---|---|---|
-    | ETH / WETH | Ethereum Sepolia | Hedera Testnet |
-    | HBAR / WHBAR | Hedera Testnet | Ethereum Sepolia |
-    | ProofBridge Token | Ethereum Sepolia ↔ Hedera Testnet | Both directions |
+    | ETH / WETH | Ethereum Sepolia | Stellar Testnet |
+    | XLM / WXLM | Stellar Testnet | Ethereum Sepolia |
+    | ProofBridge Token | Ethereum Sepolia ↔ Stellar Testnet | Both directions |
 
-    Native tokens (ETH, HBAR) are automatically wrapped to their ERC-20 equivalents (WETH, WHBAR) when deposited, and unwrapped when released.
+    Native tokens (ETH, XLM) are automatically wrapped to their equivalents (WETH on Sepolia, WXLM via a SEP-41-compatible contract) when deposited, and unwrapped when released.
   </Accordion>
 
   <Accordion title="Is my transaction private?">
@@ -81,7 +82,7 @@ Find answers to the most common questions about using ProofBridge. If your quest
 
     **Counterparty non-completion**: If the Bridger creates an order on the source chain but never triggers the relayer callback to initiate settlement, your locked liquidity stays reserved until the order expires or the situation is resolved. The Bridger's deposited funds are also locked in the meantime.
 
-    **Relayer liveness**: In the current Phase 1 design, the relayer coordinates settlement. If the relayer is offline, settlement may be delayed even after both parties have deposited.
+    **Relayer liveness**: In the current pre-authorization phase, the relayer coordinates settlement. If the relayer is offline, settlement may be delayed even after both parties have deposited. The BLS aggregation milestone removes this single-relayer dependency — see the [roadmap](/reference/roadmap).
 
     **Settlement guarantees**: Once a valid ZK proof is submitted and verified on-chain, funds are released to the correct recipients automatically — the contract enforces this unconditionally. A Maker who has locked funds against a valid order hash will receive the Bridger's deposited tokens as soon as the proof confirms.
 
@@ -93,9 +94,12 @@ Find answers to the most common questions about using ProofBridge. If your quest
   <Accordion title="What chains will be supported in the future?">
     ProofBridge is designed for multi-chain extensibility. The roadmap includes:
 
-    - **Phase 1 (current)**: Ethereum Sepolia and Hedera Testnet (EVM), with Stellar Testnet (Soroban)
-    - **Phase 5**: Non-EVM chains including Starknet and Solana, along with monitoring, anomaly detection, and safe-mode controls
+    - **Currently**: Ethereum Sepolia (EVM) and Stellar Testnet (Soroban)
+    - **Planned EVM**: Arbitrum, Base, Optimism, Polygon
+    - **Planned non-EVM**: Starknet, Solana
 
-    Adding a new chain requires deploying the four core contracts (AdManager, OrderPortal, MerkleManager, Verifier), configuring bidirectional chain links, and registering token routes. The protocol is chain-agnostic as long as the chain can verify UltraHonk proofs and execute the Poseidon2 hash function.
+    Adding a new chain requires deploying the four core contracts (`AdManager`, `OrderPortal`, `MerkleManager`, `Verifier`), configuring bidirectional chain links, and registering token routes. The protocol is chain-agnostic as long as the chain can verify UltraHonk proofs and execute the Poseidon2 hash function.
+
+    See the [roadmap](/reference/roadmap) for timing and sequencing.
   </Accordion>
 </AccordionGroup>

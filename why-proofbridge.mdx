@@ -1,0 +1,89 @@
+---
+title: "Why ProofBridge"
+sidebarTitle: "Why ProofBridge"
+description: "The problem with today's cross-chain bridges, and how ProofBridge's peer-to-peer, proof-based design fixes it."
+---
+
+Bridges are the most attacked surface in crypto. Over \$2 billion has been stolen from bridge protocols since 2021, and the structural reason is the same almost every time: a central custodian holds everyone's assets, and once that custodian is compromised, every user loses funds at once.
+
+ProofBridge is built from a different starting assumption. There is no central pool to drain. Settlement happens between two users directly, enforced by zero-knowledge proofs that both sides of the trade actually occurred on-chain.
+
+## The problem
+
+<CardGroup cols={3}>
+  <Card title="Bridge hacks" icon="shield-halved">
+    **\$2B+ stolen since 2021.** 13 major bridge hacks in 2022 alone. The common pattern: a pooled honeypot sitting behind a multisig or validator set becomes a single point of failure. When it falls, every user is drained together.
+  </Card>
+  <Card title="Custodial control" icon="lock">
+    Most bridges require you to hand your assets to a third party that controls both issuance and release. Your exposure is whatever that custodian's worst day looks like — a compromised key, a malicious operator, a bug in the release logic.
+  </Card>
+  <Card title="Slow finality" icon="hourglass-half">
+    Traditional designs wait for multi-validator consensus on each transfer, require confirmations on both the source and destination chains, and rely on external relayers to submit proofs. Users wait hours for finality, and they pay for every step.
+  </Card>
+</CardGroup>
+
+The root cause is the same across all three: bridges today treat cross-chain transfers as a problem you solve by adding more trusted operators. That concentrates risk instead of distributing it.
+
+<Info>
+  **Source:** [Chainalysis Blog, 2022-08-02](https://www.chainalysis.com/blog/cross-chain-bridge-hacks-2022/) — "Vulnerabilities in Cross-chain Bridge Protocols Emerge as Top Security Risk."
+</Info>
+
+## The ProofBridge solution
+
+ProofBridge inverts the model. Instead of a central operator bearing all the risk, every trade is a direct peer-to-peer match between a **Maker** (liquidity provider) and a **Bridger** (user). Settlement is enforced by ZK proofs of each party's deposit, not by a trusted validator set.
+
+### User-facing security
+
+Each user holds their own asset boundary. There is no pooled vault to compromise, no multisig that can unlock everyone's funds. If a single account is compromised, the breach stays isolated to that user. The rest of the protocol continues running without interruption.
+
+This is the principle blockchains were built on: you are responsible for your own keys, and your security does not depend on anyone else's.
+
+### Explicit dual authorization
+
+Every fund release requires on-chain consent from both the Maker and the Bridger. Liquidity providers keep full control over their capital even while it sits in an open ad — the protocol itself has no unilateral authority to move or redirect those funds. Assets cannot be touched without both parties signing off.
+
+### Peer consensus, not validator consensus
+
+The end-state design of ProofBridge uses BLS signature aggregation between the Maker and Bridger, combined with ZK proofs of each deposit. The trade settles because the two counterparties directly agreed and the proofs check out — not because a committee of external validators reached consensus on their behalf.
+
+The result: lower cost, faster settlement, and nothing waiting on a validator quorum that may or may not be online.
+
+<Note>
+  ProofBridge is currently in its pre-authorization (stateful relayer) phase to bootstrap trust during early testnet. The BLS end-state is the next milestone on the [roadmap](/reference/roadmap). The relayer's role shrinks as BLS aggregation comes online.
+</Note>
+
+## How ProofBridge compares
+
+<CardGroup cols={2}>
+  <Card title="User controls assets always" icon="key">
+    No protocol-level custody. Funds live in your own order or ad contract, not a shared pool.
+  </Card>
+  <Card title="No external validators" icon="users-slash">
+    Settlement uses the signatures of the two parties on the trade, not a third-party validator set.
+  </Card>
+  <Card title="Proof-verified deposits" icon="shield-check">
+    Each transfer includes a ZK proof that the counterparty's deposit is genuinely recorded on-chain.
+  </Card>
+  <Card title="Faster settlement" icon="bolt">
+    No multi-round validator consensus. Trades settle as soon as both deposits are proven.
+  </Card>
+</CardGroup>
+
+See the full [comparison with Hashport, Wormhole, Stargate, and LayerZero](/concepts/comparisons) for a side-by-side view.
+
+## Where to go next
+
+<CardGroup cols={2}>
+  <Card title="How it works" icon="circle-info" href="/how-it-works">
+    The architecture, 12-step cross-chain flow, and the role each contract plays.
+  </Card>
+  <Card title="Quickstart" icon="rocket" href="/quickstart">
+    Connect a wallet and run your first transfer on testnet.
+  </Card>
+  <Card title="Roadmap" icon="map" href="/reference/roadmap">
+    The path from pre-auth relayer to BLS aggregation and the AI automation layer.
+  </Card>
+  <Card title="Security model" icon="shield" href="/reference/security-model">
+    Trust assumptions, replay prevention, and how the protocol enforces settlement.
+  </Card>
+</CardGroup>

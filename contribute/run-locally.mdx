@@ -1,0 +1,202 @@
+---
+title: "Run ProofBridge locally"
+sidebarTitle: "Run locally"
+description: "Bootstrap the full ProofBridge stack on your machine — anvil, Stellar quickstart, postgres, relayer, contracts, and optional dev wallet funding — in a single command."
+---
+
+This guide shows you how to run the full ProofBridge stack locally, using only Docker and the scripts in `scripts/docker-local/`. You do not need the Rust, Foundry, or Noir toolchains installed — contract artifacts are pulled from the public `Proofbridge-Contracts` GitHub Release.
+
+## What you get
+
+A single command brings up:
+
+- **Anvil** — a local EVM chain on `http://localhost:9545`
+- **Stellar Quickstart** — a local Soroban RPC on `http://localhost:8000`
+- **Postgres** — the relayer's database on `localhost:5433`
+- **Backend Relayer** — the coordinator service on `http://localhost:2005`
+- **Deployer** — a one-shot container that deploys contracts, runs migrations, and seeds the database
+- **Optional: funded dev wallets** for the frontend
+
+## Prerequisites
+
+- **Docker + Docker Compose** — the only hard requirement.
+- A POSIX shell (bash, zsh). On Windows, run under WSL2 or Git Bash.
+
+That is the baseline. You can optionally install the full toolchain (Foundry, Rust/Soroban, Noir/`bb`) if you want to build contracts from source — see [Using a local build](#using-a-local-build) below.
+
+## The one-command flow
+
+```bash
+# From the repo root
+bash scripts/docker-local/up.sh
+```
+
+On first run this will:
+
+1. Download the latest contract bundle (WASMs, EVM ABIs, deposit verification key) from the `Proofbridge-Contracts` GitHub Release.
+2. Extract it into `scripts/docker-local/.artifacts/`.
+3. Build the deployer image (node:20-slim + stellar-cli, \~1 minute cold).
+4. Start anvil, Stellar quickstart, postgres, and the relayer.
+5. Run the deployer container, which deploys contracts on both chains, runs `prisma migrate deploy`, and seeds the database.
+
+When it finishes you will see:
+
+```
+[up.sh] stack is up ✓
+  relayer:   http://localhost:2005
+  postgres:  postgresql://relayer:relayer@localhost:5433/relayer
+  anvil:     http://localhost:9545
+  stellar:   http://localhost:8000  (soroban RPC: /soroban/rpc)
+```
+
+## Funding dev wallets
+
+You can have the deployer fund your frontend wallets automatically. Copy the example env file and fill in whichever addresses you want funded:
+
+```bash
+cp scripts/docker-local/.env.example scripts/docker-local/.env
+$EDITOR scripts/docker-local/.env
+```
+
+```env
+# Your MetaMask (or similar) address on anvil. Receives 100 ETH + 1,000,000 TT
+# (ERC20Mock test token) on first deploy.
+DEV_EVM_ADDRESS=0xYourEvmAddress
+
+# Your Stellar account G-strkey. Friendbot-funded with ~10k XLM on the local quickstart.
+DEV_STELLAR_ADDRESS=GYOURSTELLARADDRESS...
+```
+
+Both fields are optional — leave blank to skip that chain. Re-running `up.sh` with a populated `.env` is safe; funding is idempotent.
+
+## Tearing down
+
+```bash
+bash scripts/docker-local/down.sh
+```
+
+This stops and removes all containers and volumes. The artifact cache in `.artifacts/` is left in place so the next `up.sh` starts faster.
+
+## Pinning a contract build
+
+The default bundle tag is `latest` (a rolling pointer to the most recent green build of `main`). To pin to a specific commit, set the tag to the short SHA:
+
+```bash
+# In .env
+CONTRACTS_BUNDLE_TAG=abc1234
+```
+
+Or inline:
+
+```bash
+CONTRACTS_BUNDLE_TAG=abc1234 bash scripts/docker-local/up.sh
+```
+
+Per-commit tags are immutable, so pinning gives you reproducible local deployments.
+
+## Using a local build
+
+If you want to test unmerged contract changes, build the artifacts locally and pass `--local`:
+
+```bash
+# Prereqs (one-time): Foundry, stellar-cli + Soroban, Noir (nargo) + bb
+cd contracts/evm       && forge build
+cd contracts/stellar   && stellar contract build
+bash scripts/build_circuits.sh proof_circuits/deposits
+
+# Then bring the stack up from your local tree
+bash scripts/docker-local/up.sh --local
+```
+
+`--local` skips the GitHub Release download and copies artifacts from your working tree into `.artifacts/`.
+
+## The scripts in `scripts/`
+
+<CardGroup cols={2}>
+  <Card title="docker-local/" icon="docker">
+    The primary dev bootstrap. Brings up the full stack (chains + db + relayer + deployed contracts) with `up.sh` and tears it down with `down.sh`.
+  </Card>
+  <Card title="build_circuits.sh" icon="shield">
+    Builds Noir circuits and generates UltraHonk verification keys. Used when you need to rebuild proof artifacts from source.
+  </Card>
+  <Card title="start_chains.sh" icon="play">
+    Lightweight alternative to `docker-local/` when you want host-side anvil + Stellar quickstart without the rest of the stack. Writes `.chains.env` with RPC URLs and admin keys.
+  </Card>
+  <Card title="stop_chains.sh" icon="stop">
+    Tears down whatever `start_chains.sh` brought up.
+  </Card>
+  <Card title="relayer-e2e/" icon="vial">
+    End-to-end tests that exercise the backend relayer over HTTP — deploy, seed, run ad/trade flows, tear down. Entry point: `e2e.sh`.
+  </Card>
+  <Card title="cross-chain-e2e/" icon="arrows-left-right">
+    Full cross-chain proof-relay tests that walk a deposit → proof → settlement flow against both chains. Entry point: `run.ts`.
+  </Card>
+</CardGroup>
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="bash\r: No such file or directory (Windows)">
+    The scripts were checked out with CRLF line endings. The repo ships a `.gitattributes` that forces LF on `*.sh`, so the cleanest fix is:
+
+    ```bash
+    git rm --cached -r .
+    git reset --hard
+    ```
+
+    Then re-run `up.sh`. The deployer Dockerfile also strips `\r` defensively, so builds should succeed either way.
+  </Accordion>
+
+  <Accordion title="[up.sh] artifact layout incomplete">
+    The contract bundle is incomplete in `.artifacts/`. Force a re-download by setting the bundle tag explicitly:
+
+    ```bash
+    CONTRACTS_BUNDLE_TAG=latest bash scripts/docker-local/up.sh
+    ```
+
+    Or if you are iterating on local contract changes, clear `.artifacts/` and use `--local`.
+  </Accordion>
+
+  <Accordion title="stellar: error while loading shared libraries: libdbus-1.so.3">
+    Your deployer image was built before `libdbus-1-3` was added to the Dockerfile. Rebuild without cache:
+
+    ```bash
+    docker compose -f scripts/docker-local/docker-compose.yaml build --no-cache deployer
+    bash scripts/docker-local/up.sh
+    ```
+  </Accordion>
+
+  <Accordion title="[deployer] friendbot never became reachable">
+    The Stellar quickstart container can take 30–60 seconds after RPC becomes healthy before the friendbot HTTP endpoint serves traffic. The entrypoint script will poll friendbot for up to 3 minutes; if it still fails, check `docker compose logs stellar` for a startup error.
+  </Accordion>
+
+  <Accordion title="anvil never responded">
+    Make sure nothing else is bound to port 9545 on the host. Re-run `docker compose -f scripts/docker-local/docker-compose.yaml logs anvil` to see the chain's startup log.
+  </Accordion>
+
+  <Accordion title="Relayer logs show Prisma migration errors">
+    Postgres may not have been ready when migrations ran. The deployer retries internally, but you can also re-run the migration manually:
+
+    ```bash
+    cd apps/backend-relayer
+    DATABASE_URL="postgresql://relayer:relayer@localhost:5433/relayer" npx prisma migrate deploy
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Backend relayer" icon="server" href="https://github.com/Explore-Beyond-Innovations/ProofBridge/tree/main/apps/backend-relayer">
+    The service you are running locally. README and Prisma schema.
+  </Card>
+  <Card title="How it works" icon="circle-info" href="/how-it-works">
+    Understand what the stack does end-to-end before diving into the code.
+  </Card>
+  <Card title="API reference" icon="code" href="/api/overview">
+    Hit the relayer at `http://localhost:2005` once the stack is up.
+  </Card>
+  <Card title="Smart contracts" icon="file-code" href="/reference/smart-contracts">
+    Contract-level reference for the addresses the deployer writes to `deployed.json`.
+  </Card>
+</CardGroup>

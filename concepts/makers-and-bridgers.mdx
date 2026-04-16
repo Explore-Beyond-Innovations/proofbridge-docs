@@ -1,5 +1,6 @@
 ---
 title: "Makers and Bridgers: understanding ProofBridge roles"
+sidebarTitle: "Makers & Bridgers"
 description: "ProofBridge has two roles: Makers who provide cross-chain liquidity and Bridgers who transfer assets. Learn how each role works and how they interact."
 ---
 
@@ -18,7 +19,7 @@ Every cross-chain transfer on ProofBridge involves two parties: a **Maker** who 
 
 ## How Makers work
 
-As a Maker, you provide liquidity for a specific cross-chain route — for example, wETH on Hedera in exchange for ETH on Sepolia. You post a **liquidity ad** specifying the token pair, available amount, and exchange rate. When a Bridger selects your ad, your funds are locked against that specific order and released to the Bridger upon settlement.
+As a Maker, you provide liquidity for a specific cross-chain route — for example, wETH on Stellar in exchange for ETH on Sepolia. You post a **liquidity ad** specifying the token pair, available amount, and exchange rate. When a Bridger selects your ad, your funds are locked against that specific order and released to the Bridger upon settlement.
 
 In return, you receive the Bridger's deposited source tokens. This means you earn by facilitating cross-chain transfers rather than by charging fees out of band.
 
@@ -50,7 +51,7 @@ As a Bridger, you select a liquidity ad that matches your desired route, then de
     Open the [ProofBridge app](https://proof-bridge.vercel.app/) and filter liquidity ads by source chain, destination chain, token pair, and rate.
   </Step>
   <Step title="Deposit source tokens">
-    Select an ad and submit your deposit. If you're bridging native ETH or HBAR, it is automatically wrapped on deposit. You'll sign a typed order that cryptographically binds the trade terms to both chains.
+    Select an ad and submit your deposit. If you're bridging native ETH or XLM, it is automatically wrapped on deposit. You'll sign a typed order that cryptographically binds the trade terms to both chains.
   </Step>
   <Step title="Wait for settlement">
     The relayer detects your deposit, generates a ZK proof, and submits it to both chains. No further action is required on your part.

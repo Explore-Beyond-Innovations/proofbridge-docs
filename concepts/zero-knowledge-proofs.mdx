@@ -1,5 +1,6 @@
 ---
 title: "Zero-knowledge proofs: trustless cross-chain settlement"
+sidebarTitle: "ZK proofs"
 description: "ZK proofs let ProofBridge verify that a deposit exists on one chain without revealing private data, enabling trustless settlement between counterparties."
 ---
 
@@ -69,6 +70,36 @@ The deposit circuit validates all of the following in a single proof:
     The circuit includes a chain flag (0 for source chain, 1 for destination chain) to ensure each proof is only valid for its intended contract. This prevents cross-chain replay attacks.
   </Accordion>
 </AccordionGroup>
+
+## End-to-end proof flow
+
+```mermaid
+sequenceDiagram
+    participant Bridger
+    participant OrderPortal as OrderPortal<br/>(source chain)
+    participant MMR as MerkleManager<br/>(both chains)
+    participant Relayer
+    participant Circuit as Noir circuit<br/>(UltraHonk)
+    participant AdManager as AdManager<br/>(destination chain)
+    participant Verifier
+
+    Bridger->>OrderPortal: Deposit tokens + EIP-712 order
+    OrderPortal->>MMR: Append order hash (source MMR)
+    Bridger->>Relayer: Confirm deposit (callback)
+    Relayer->>MMR: Read inclusion proof + roots
+    Relayer->>Circuit: Generate ZK proof<br/>(order, secret, inclusion proof)
+    Circuit-->>Relayer: UltraHonk proof + public inputs
+    Relayer->>AdManager: Submit proof (destination side)
+    AdManager->>Verifier: verify(proof, publicInputs)
+    Verifier-->>AdManager: valid ✓
+    AdManager-->>Bridger: Release destination tokens
+    Relayer->>OrderPortal: Submit proof (source side)
+    OrderPortal->>Verifier: verify(proof, publicInputs)
+    Verifier-->>OrderPortal: valid ✓
+    OrderPortal-->>AdManager: Release source tokens to Maker
+```
+
+The proof is verified independently on each chain. Both sides settle atomically from the user's perspective — if either verification fails, neither releases funds.
 
 ## User experience
 

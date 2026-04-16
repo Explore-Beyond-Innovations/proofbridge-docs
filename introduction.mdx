@@ -1,5 +1,6 @@
 ---
 title: "Introduction to ProofBridge: P2P Cross-Chain Bridge"
+sidebarTitle: "Introduction"
 description: "ProofBridge is a peer-to-peer cross-chain bridge secured by zero-knowledge proofs. Move assets across chains with no custodians or centralized relayers."
 ---
 
@@ -35,8 +36,11 @@ ProofBridge is currently live on the following testnets:
 | Network | Chain ID | Role |
 |---|---|---|
 | Ethereum Sepolia | 11155111 | Source or destination chain |
-| Hedera Testnet | 296 | Source or destination chain |
-| Stellar Testnet | — | Source or destination chain |
+| Stellar Testnet | 1000001 | Source or destination chain |
+
+<Note>
+  Stellar does not have a native numeric chain ID — `1000001` is the internal identifier ProofBridge uses to distinguish Stellar Testnet inside the relayer and frontend. The canonical Stellar network identity is the passphrase `Test SDF Network ; September 2015`.
+</Note>
 
 <Note>
   ProofBridge is currently deployed on testnets. Mainnet deployments are on the roadmap. Use testnet funds only.
@@ -44,10 +48,10 @@ ProofBridge is currently live on the following testnets:
 
 ### Active bridging routes
 
-The two live routes for native token bridging are:
+The live routes for native token bridging are:
 
-- **ETH (Sepolia) ↔ wETH (Hedera)** — ETH is automatically wrapped to WETH on deposit and unwrapped on withdrawal.
-- **HBAR (Hedera) ↔ wHBAR (Sepolia)** — HBAR is automatically wrapped to WHBAR on deposit and unwrapped on withdrawal.
+- **ETH (Sepolia) ↔ wETH (Stellar)** — ETH is automatically wrapped to WETH on deposit and unwrapped on withdrawal. The Stellar side uses a SEP-41-compatible contract.
+- **XLM (Stellar) ↔ wXLM (Sepolia)** — XLM is automatically wrapped to WXLM on deposit and unwrapped on withdrawal.
 
 ## The two user roles
 
@@ -63,6 +67,26 @@ A Maker is a liquidity provider. You post a **liquidity ad** on a chain using th
   You do not need to choose a role permanently. The same wallet can act as a Bridger on one trade and a Maker on another.
 </Info>
 
+## Why we're building ProofBridge
+
+Cross-chain bridges have lost more than $2B to hacks, almost all of them targeting the same architectural weak point: a trusted multisig, validator set, or relayer that custody user funds mid-transfer. ProofBridge replaces that trust boundary with cryptography — users prove their own deposits, funds never leave on-chain escrow, and the relayer can only submit proofs the contract independently verifies.
+
+<Card title="Read the full problem statement and solution" icon="shield-check" href="/why-proofbridge">
+  The security failures we're designing away, the dual authentication model, and the end-state design with BLS signature aggregation.
+</Card>
+
+## What's on the roadmap
+
+ProofBridge is live on testnet with a single relayer coordinating settlement. That single-relayer dependency is a transitional bootstrap, not the end state. Planned upgrades include:
+
+- **BLS signature aggregation** for a decentralized relayer set, removing the last trust assumption.
+- **AI automation layer** for anomaly detection, automated order matching, and a Maker/Bridger co-pilot that can act inside scoped, user-authorized bounds.
+- **More chains**: Arbitrum, Base, Optimism, Polygon, Starknet, and Solana.
+
+<Card title="See the full roadmap" icon="map" href="/reference/roadmap">
+  Phased rollout from testnet to mainnet, BLS aggregation milestone, and the AI agent enhancement design.
+</Card>
+
 ## Where to go next
 
 <CardGroup cols={2}>
@@ -71,5 +95,11 @@ A Maker is a liquidity provider. You post a **liquidity ad** on a chain using th
   </Card>
   <Card title="How it works" icon="circle-info" href="/how-it-works">
     See the full end-to-end flow, from liquidity ads to ZK-proof settlement.
+  </Card>
+  <Card title="Run it locally" icon="docker" href="/contribute/run-locally">
+    Bootstrap the full stack on your machine with one command.
+  </Card>
+  <Card title="Compared to other bridges" icon="scale-balanced" href="/concepts/comparisons">
+    How ProofBridge differs from Hashport, Wormhole, Stargate, and LayerZero.
   </Card>
 </CardGroup>

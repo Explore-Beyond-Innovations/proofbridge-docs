@@ -1,5 +1,6 @@
 ---
 title: "Trades API: Manage the Cross-Chain Trade Lifecycle"
+sidebarTitle: "Trades"
 description: "Initiate cross-chain trades, retrieve order parameters, lock and unlock funds, and confirm on-chain actions through the ProofBridge Trades API."
 ---
 
@@ -97,18 +98,18 @@ List trades with optional filters. Returns a paginated list.
         "id": "123e4567-e89b-12d3-a456-426614174000",
         "adToken": {
           "id": "d290f1ee-6c54-4b01-90e6-d701748f0851",
-          "symbol": "USDC",
-          "kind": "ERC20",
-          "address": "0xA0b86a33E6441cD3b27CA2E60b05C5FBA3B6dE9B",
-          "decimals": 6,
-          "chain": { "name": "Hedera Testnet", "chainId": "296", "kind": "EVM" }
+          "symbol": "wETH",
+          "kind": "SEP41",
+          "address": "CAXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+          "decimals": 18,
+          "chain": { "name": "Stellar Testnet", "chainId": "1000001", "kind": "STELLAR" }
         },
         "orderToken": {
           "id": "d290f1ee-6c54-4b01-90e6-d701748f0852",
-          "symbol": "USDC",
-          "kind": "ERC20",
-          "address": "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238",
-          "decimals": 6,
+          "symbol": "ETH",
+          "kind": "NATIVE",
+          "address": "0x0000000000000000000000000000000000000000",
+          "decimals": 18,
           "chain": { "name": "Ethereum Sepolia", "chainId": "11155111", "kind": "EVM" }
         }
       }

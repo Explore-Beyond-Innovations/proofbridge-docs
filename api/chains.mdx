@@ -1,5 +1,6 @@
 ---
 title: "Chains API: Query Supported Blockchain Networks Info"
+sidebarTitle: "Chains"
 description: "Query supported chains and their smart contract addresses. Use these endpoints to discover which networks ProofBridge is deployed on."
 ---
 
@@ -24,7 +25,7 @@ List all supported chains. Supports optional filtering by name or chain ID, and 
 </ParamField>
 
 <ParamField query="chainId" type="string">
-  Filter by the numeric chain ID as a string (e.g., `"296"` for Hedera Testnet, `"11155111"` for Ethereum Sepolia).
+  Filter by the numeric chain ID as a string (e.g., `"11155111"` for Ethereum Sepolia, `"1000001"` for Stellar Testnet).
 </ParamField>
 
 <ParamField query="cursor" type="string">
@@ -51,20 +52,20 @@ List all supported chains. Supports optional filtering by name or chain ID, and 
 {
   "data": [
     {
-      "name": "Hedera Testnet",
-      "chainId": "296",
-      "kind": "EVM",
-      "adManagerAddress": "0xA1B2C3D4E5F60718293A4B5C6D7E8F9012345678",
-      "orderPortalAddress": "0xB2C3D4E5F60718293A4B5C6D7E8F9012345678AB",
-      "createdAt": "2026-01-10T00:00:00.000Z",
-      "updatedAt": "2026-01-10T00:00:00.000Z"
-    },
-    {
       "name": "Ethereum Sepolia",
       "chainId": "11155111",
       "kind": "EVM",
       "adManagerAddress": "0xC3D4E5F60718293A4B5C6D7E8F9012345678ABC3",
       "orderPortalAddress": "0xD4E5F60718293A4B5C6D7E8F9012345678ABCD4E",
+      "createdAt": "2026-01-10T00:00:00.000Z",
+      "updatedAt": "2026-01-10T00:00:00.000Z"
+    },
+    {
+      "name": "Stellar Testnet",
+      "chainId": "1000001",
+      "kind": "STELLAR",
+      "adManagerAddress": "CAXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+      "orderPortalAddress": "CAYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY",
       "createdAt": "2026-01-10T00:00:00.000Z",
       "updatedAt": "2026-01-10T00:00:00.000Z"
     }
@@ -84,7 +85,7 @@ Retrieve details for a single chain by its numeric chain ID.
 ### Path parameters
 
 <ParamField path="chainId" type="string" required>
-  The numeric chain ID of the network to retrieve (e.g., `"296"` or `"11155111"`). Do not use the internal UUID — use the public chain ID.
+  The numeric chain ID of the network to retrieve (e.g., `"11155111"` for Ethereum Sepolia). Do not use the internal UUID — use the public chain ID.
 </ParamField>
 
 Returns a single [Chain object](#chain-object-fields).
@@ -93,11 +94,11 @@ Returns a single [Chain object](#chain-object-fields).
 
 ```json Response
 {
-  "name": "Hedera Testnet",
-  "chainId": "296",
+  "name": "Ethereum Sepolia",
+  "chainId": "11155111",
   "kind": "EVM",
-  "adManagerAddress": "0xA1B2C3D4E5F60718293A4B5C6D7E8F9012345678",
-  "orderPortalAddress": "0xB2C3D4E5F60718293A4B5C6D7E8F9012345678AB",
+  "adManagerAddress": "0xC3D4E5F60718293A4B5C6D7E8F9012345678ABC3",
+  "orderPortalAddress": "0xD4E5F60718293A4B5C6D7E8F9012345678ABCD4E",
   "createdAt": "2026-01-10T00:00:00.000Z",
   "updatedAt": "2026-01-10T00:00:00.000Z"
 }
@@ -110,7 +111,7 @@ Returns a single [Chain object](#chain-object-fields).
 ## Chain object fields
 
 <ResponseField name="name" type="string" required>
-  Human-readable name of the network (e.g., `"Hedera Testnet"`, `"Ethereum Sepolia"`).
+  Human-readable name of the network (e.g., `"Ethereum Sepolia"`, `"Stellar Testnet"`).
 </ResponseField>
 
 <ResponseField name="chainId" type="string" required>
