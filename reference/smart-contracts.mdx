@@ -81,38 +81,54 @@ You do not call Verifier directly. AdManager and OrderPortal call it internally 
 
 ## Deployed addresses
 
-<Warning>
-  The addresses below are placeholders while we redeploy on both chains. Read the current addresses from the latest build in the [Proofbridge-Contracts GitHub Release](https://github.com/Explore-Beyond-Innovations/ProofBridge/releases/tag/latest) or the repository's `deployed.json` manifest before integrating.
-</Warning>
+<Note>
+  Canonical sources of truth: the deployment manifests at [`contracts/evm/deployments/11155111.json`](https://github.com/Explore-Beyond-Innovations/ProofBridge/blob/main/contracts/evm/deployments/11155111.json) and [`contracts/stellar/deployments/1000001.json`](https://github.com/Explore-Beyond-Innovations/ProofBridge/blob/main/contracts/stellar/deployments/1000001.json) in the monorepo. The tables below are snapshots; if they ever drift from the manifests, the manifests win.
+</Note>
 
 <Tabs>
   <Tab title="Ethereum Sepolia">
     **Chain ID: 11155111**
 
-    | Contract | Address | Explorer |
+    Core contracts:
+
+    | Contract | Address |
+    |---|---|
+    | Verifier | [`0xdD0aF03aF86923F3c4896f5895604893281B0D23`](https://sepolia.etherscan.io/address/0xdD0aF03aF86923F3c4896f5895604893281B0D23) |
+    | MerkleManager | [`0x8316caaC87BDe7622d33a4d3A94e392dc6F5277b`](https://sepolia.etherscan.io/address/0x8316caaC87BDe7622d33a4d3A94e392dc6F5277b) |
+    | AdManager | [`0xe56bc3fE43edb738a90639695639aD0711Df65D9`](https://sepolia.etherscan.io/address/0xe56bc3fE43edb738a90639695639aD0711Df65D9) |
+    | OrderPortal | [`0xFC9e524dF436d3bA3B22C1C29058327c54B6f75d`](https://sepolia.etherscan.io/address/0xFC9e524dF436d3bA3B22C1C29058327c54B6f75d) |
+    | wNativeToken (WETH) | [`0x38F67Fb97B96988B9d5Ef3f0f9E0DB924780D1ef`](https://sepolia.etherscan.io/address/0x38F67Fb97B96988B9d5Ef3f0f9E0DB924780D1ef) |
+
+    Bridged tokens:
+
+    | Token | Symbol | Address |
     |---|---|---|
-    | Verifier | `0x0000000000000000000000000000000000000001` | [View on Etherscan](https://sepolia.etherscan.io/) |
-    | MerkleManager | `0x0000000000000000000000000000000000000002` | [View on Etherscan](https://sepolia.etherscan.io/) |
-    | AdManager | `0x0000000000000000000000000000000000000003` | [View on Etherscan](https://sepolia.etherscan.io/) |
-    | OrderPortal | `0x0000000000000000000000000000000000000004` | [View on Etherscan](https://sepolia.etherscan.io/) |
-    | wNativeToken (WETH) | `0x0000000000000000000000000000000000000005` | [View on Etherscan](https://sepolia.etherscan.io/) |
-    | wXLM | `0x0000000000000000000000000000000000000006` | [View on Etherscan](https://sepolia.etherscan.io/) |
-    | ProofBridge Token | `0x0000000000000000000000000000000000000007` | [View on Etherscan](https://sepolia.etherscan.io/) |
+    | Wrapped XLM | WXLM | [`0xba033066076e704E50124B9cDba63EFD3dC6414c`](https://sepolia.etherscan.io/address/0xba033066076e704E50124B9cDba63EFD3dC6414c) |
+    | Native Ether (sentinel) | ETH | `0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE` |
+    | ProofBridge test token | PB | [`0x407498fD9C955bed021c03BcbB99aD514042b59B`](https://sepolia.etherscan.io/address/0x407498fD9C955bed021c03BcbB99aD514042b59B) |
   </Tab>
   <Tab title="Stellar Testnet">
-    **Network passphrase:** `Test SDF Network ; September 2015`
+    **Chain ID: 1000001** &nbsp;·&nbsp; **Network passphrase:** `Test SDF Network ; September 2015`
 
     Soroban contract IDs are strkeys — base32-encoded 56-character identifiers starting with `C`.
 
-    | Contract | Contract ID | Explorer |
+    Core contracts:
+
+    | Contract | Contract ID |
+    |---|---|
+    | Verifier | [`CBK5UOQDTK4CKD4XKCLMBQOYN26EOH2RT5K2UFL7XUF33DRI3KIELUS4`](https://stellar.expert/explorer/testnet/contract/CBK5UOQDTK4CKD4XKCLMBQOYN26EOH2RT5K2UFL7XUF33DRI3KIELUS4) |
+    | MerkleManager | [`CDNR5ST4SMVBZQKHSLQZ7ROHSOAVRCYMFA76I3MT5Z6ZTVFGT4CSWBN2`](https://stellar.expert/explorer/testnet/contract/CDNR5ST4SMVBZQKHSLQZ7ROHSOAVRCYMFA76I3MT5Z6ZTVFGT4CSWBN2) |
+    | AdManager | [`CAP3YYF4WDEQME44GP7UNLZVHMAUB7L2DYLXUPWBD43Y72QBCB6PX65A`](https://stellar.expert/explorer/testnet/contract/CAP3YYF4WDEQME44GP7UNLZVHMAUB7L2DYLXUPWBD43Y72QBCB6PX65A) |
+    | OrderPortal | [`CCRGG44MLSK46BHQLZZMTKDQAA6Y54XQPKIVJLEW5DF4JV7BOCAWXIIA`](https://stellar.expert/explorer/testnet/contract/CCRGG44MLSK46BHQLZZMTKDQAA6Y54XQPKIVJLEW5DF4JV7BOCAWXIIA) |
+    | wNativeToken (wrapped XLM) | [`CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC`](https://stellar.expert/explorer/testnet/contract/CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC) |
+
+    Bridged tokens:
+
+    | Token | Symbol | Contract ID |
     |---|---|---|
-    | Verifier | `CA…PENDING_REDEPLOY` | [StellarExpert](https://stellar.expert/explorer/testnet) |
-    | MerkleManager | `CA…PENDING_REDEPLOY` | [StellarExpert](https://stellar.expert/explorer/testnet) |
-    | AdManager | `CA…PENDING_REDEPLOY` | [StellarExpert](https://stellar.expert/explorer/testnet) |
-    | OrderPortal | `CA…PENDING_REDEPLOY` | [StellarExpert](https://stellar.expert/explorer/testnet) |
-    | wNativeToken (wrapped XLM) | `CA…PENDING_REDEPLOY` | [StellarExpert](https://stellar.expert/explorer/testnet) |
-    | wETH (SEP-41) | `CA…PENDING_REDEPLOY` | [StellarExpert](https://stellar.expert/explorer/testnet) |
-    | ProofBridge Token | `CA…PENDING_REDEPLOY` | [StellarExpert](https://stellar.expert/explorer/testnet) |
+    | Stellar XLM (native, via wrapper) | XLM | [`CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC`](https://stellar.expert/explorer/testnet/contract/CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC) |
+    | Wrapped ETH (SEP-41) | wETH | [`CB73XXFFMBNAVYCFC6I2MRIMWSCQRCMIG2TCQVJYTUDHVPTL53IHJVLM`](https://stellar.expert/explorer/testnet/contract/CB73XXFFMBNAVYCFC6I2MRIMWSCQRCMIG2TCQVJYTUDHVPTL53IHJVLM) |
+    | ProofBridge test token (SEP-41) | PB | [`CC2RCWFXWYZJ7R75G7DM7Z2SDQQH3MWETCFBKUY27OCUXAYPGERWJJIS`](https://stellar.expert/explorer/testnet/contract/CC2RCWFXWYZJ7R75G7DM7Z2SDQQH3MWETCFBKUY27OCUXAYPGERWJJIS) |
   </Tab>
 </Tabs>
 
