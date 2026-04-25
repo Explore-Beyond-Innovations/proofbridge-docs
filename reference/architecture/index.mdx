@@ -6,58 +6,52 @@ description: "How ProofBridge is built today, where it's going, and how each pha
 
 ProofBridge is built as a sequence of phases, each tightening the
 trust model and expanding what the protocol does without changing
-its core peer-to-peer-with-ZK-proof foundation. This page is the
-entry point — start here, then click into the phase you want
-detail on.
+its core peer-to-peer-with-ZK-proof foundation.
 
 <Note>
-  Each phase carries a status marker — ✅ live (deployed on
-  testnet or mainnet), 🔨 planned (designed, not yet shipped), or
-  📅 follow-up (separately scoped, not in the current Build Award).
+  Each phase carries a status marker — ✅ live (deployed on testnet
+  or mainnet), 🔨 planned (in the current Build Award), or 📅 follow-up
+  (separately scoped, post-mainnet).
 </Note>
 
 ## The five phases at a glance
 
 <CardGroup cols={2}>
-  <Card title="Phase 1 — Pre-auth MVP" icon="circle-check" href="/reference/architecture/current-state">
+  <Card title="Phase 1: Pre-auth MVP" icon="circle-check" href="/reference/architecture/current-state">
     ✅ **Live on testnet.** Stateful relayer with pre-auth signing,
     on-chain MMR per chain, ZK proof of inclusion at unlock,
     single-key admin. Sepolia ↔ Stellar Testnet, real bridge
     transactions settling end-to-end.
   </Card>
-  <Card title="Phase 2 — BLS Auth" icon="key" href="/reference/architecture/phase-2-bls-auth">
-    🔨 **Planned T1.** Both parties sign the order with BLS, one
+  <Card title="Phase 2: BLS Auth" icon="key" href="/reference/architecture/phase-2-bls-auth">
+    🔨 **Planned for T1.** Both parties sign the order with BLS, one
     aggregate gates both unlocks, pre-auth path retired entirely.
     Adds the route-commitment defense, pause primitive, and
     standalone Noir BLS auth circuit.
   </Card>
-  <Card title="Phase 3 — Agents & Disputes" icon="robot" href="/reference/architecture/phase-3-agents-disputes">
-    🔨 **Planned T2.** Soroban custom-account agents under scoped
+  <Card title="Phase 3: Agents & Disputes" icon="robot" href="/reference/architecture/phase-3-agents-disputes">
+    🔨 **Planned for T2.** Soroban custom-account agents under scoped
     policies, dispute paths with bonded initiation and arbiter
     resolution, multi-key BLS registry for single-tx agent rotation.
   </Card>
-  <Card title="Phase 4 — Mainnet" icon="rocket" href="/reference/architecture/phase-4-mainnet">
-    🔨 **Planned T3.** Stellar + Ethereum mainnet, admin handed
+  <Card title="Phase 4: Mainnet" icon="rocket" href="/reference/architecture/phase-4-mainnet">
+    🔨 **Planned for T3.** Stellar + Ethereum mainnet, admin handed
     off to multisig, ArbiterRole multisig, 24h timelock, protocol
     fee mechanism, USDC ↔ USDC launch route, reconciliation
     listener.
   </Card>
-  <Card title="Phase 5 — Decentralization & Expansion" icon="users" href="/reference/architecture/phase-5-followups">
+  <Card title="Phase 5: Decentralization & Expansion" icon="users" href="/reference/architecture/phase-5-followups">
     📅 **Follow-up tranches.** DAO governance for the arbiter,
     agent slashing, additional chains, RWA route partnerships,
     and protocol-level optimizations.
   </Card>
-  <Card title="Roadmap timing" icon="map" href="/reference/roadmap">
-    The chronological view of the same phases, with what ships
-    when relative to the SCF Build Award funding.
-  </Card>
 </CardGroup>
 
-## End-state architecture (Phase 4 — mainnet)
+## End-state architecture (Phase 4)
 
 The diagram below is the shape ProofBridge takes at the end of
-T3. Earlier-phase diagrams are simpler subsets of this — see each
-phase page for the appropriate snapshot.
+T3. Earlier-phase diagrams have fewer actors and contracts —
+click into each phase for the snapshot at that point.
 
 <img src="/reference/architecture/_diagrams/phase-4-mainnet.png" alt="Phase 4 architecture — Mainnet end-state" />
 
@@ -88,8 +82,8 @@ and Ethereum (Solidity); the same shape mirrors across chains.
 | Phase 4 | Admin = multisig; arbiter = separate multisig; 24h timelock | Mainnet-ready; protocol fees live; USDC route active |
 | Phase 5 | Multisig → DAO governance; agents post stake | Decentralized arbitration; slashable misbehavior |
 
-Click into any phase for the contract-level changes, the diagram
-for that phase, and what users actually see differently.
+Click into any phase for the contract-level delta vs the prior
+phase and the diagram for that snapshot.
 
 ## Where to read more
 

@@ -1,21 +1,14 @@
 ---
-title: "Phase 3 — AI Agents & Dispute Resolution"
+title: "Phase 3: AI Agents & Dispute Resolution"
 sidebarTitle: "Agents & Disputes"
 description: "Soroban custom-account agents under scoped policies, order deadlines and cancel paths, bonded disputes with arbiter resolution, multi-key BLS registry."
 ---
 
 <Note>
-  🔨 **Planned for T2.** Designed, not yet shipped. Builds on Phase 2's
-  BLS-only auth model. Lands the agent-account model and dispute-handling
-  paths on testnet, plus the multi-key `BLSKeyRegistry` upgrade.
+  🔨 **Planned for T2.** Builds on Phase 2's BLS-only auth model.
+  Lands the agent-account model and dispute-handling paths on testnet,
+  plus the multi-key `BLSKeyRegistry` upgrade.
 </Note>
-
-<Warning>
-  This is the **blueprint** for T2, not final source. Field names, API
-  signatures, and storage layout may shift during implementation and
-  audit. The shape (custom-account agents, multi-key registry, bonded
-  dispute lifecycle, deadline-based cancel paths) is locked.
-</Warning>
 
 Phase 3 adds two end-user capabilities deferred from earlier phases:
 **automated maker liquidity operations under scoped authority**, and
@@ -141,7 +134,7 @@ screenshots.
 
 ## What ships next
 
-<Card title="Phase 4 — Mainnet Launch" icon="arrow-right" href="/reference/architecture/phase-4-mainnet">
+<Card title="Phase 4: Mainnet Launch" icon="arrow-right" href="/reference/architecture/phase-4-mainnet">
   Stellar + Ethereum mainnet deploy, admin and ArbiterRole both hand
   off to multisigs, 24-hour timelock on critical admin actions, protocol
   fee mechanism, USDC ↔ USDC launch route, cross-chain reconciliation

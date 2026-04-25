@@ -13,7 +13,7 @@ level changes and architecture diagrams per phase.
 
 ## Where we are now
 
-We are at **Phase 1 — Pre-auth MVP**. The full bridge architecture
+We are at **Phase 1: Pre-auth MVP**. The full bridge architecture
 is live on Sepolia ↔ Stellar Testnet, with real bridge transactions
 settling end-to-end through the contracts. The pre-auth relayer
 sits in front of every state-changing call as transitional
@@ -29,7 +29,7 @@ scaffolding while the BLS-based end-state is being built.
 ## The five phases
 
 <Steps>
-  <Step title="Phase 1 — Pre-auth MVP (live on testnet)">
+  <Step title="Phase 1: Pre-auth MVP (live on testnet)">
     - Stateful relayer with pre-authorization to bootstrap trust.
     - On-chain Poseidon2 MMR per chain, ZK deposit proof at unlock.
     - `AdManager`, `OrderPortal`, `MerkleManager`, `Verifier`, and
@@ -40,7 +40,7 @@ scaffolding while the BLS-based end-state is being built.
     See [Architecture — Phase 1](/reference/architecture/current-state).
   </Step>
 
-  <Step title="Phase 2 — BLS Auth & Pre-auth Retirement (T1)">
+  <Step title="Phase 2: BLS Auth & Pre-auth Retirement (T1)">
     - Both Maker and Bridger sign the order once with BLS; one
       aggregated signature gates both `unlock` calls.
     - Pre-auth manager-signing path removed entirely; relayer
@@ -54,7 +54,7 @@ scaffolding while the BLS-based end-state is being built.
     See [Architecture — Phase 2](/reference/architecture/phase-2-bls-auth).
   </Step>
 
-  <Step title="Phase 3 — Agents & Disputes (T2)">
+  <Step title="Phase 3: Agents & Disputes (T2)">
     - Soroban custom-account agents (per-maker) with policy-gated
       authorization. EVM mirror via per-maker Safe Module.
     - Multi-key `BLSKeyRegistry v2` with single-tx agent rotation.
@@ -69,7 +69,7 @@ scaffolding while the BLS-based end-state is being built.
     See [Architecture — Phase 3](/reference/architecture/phase-3-agents-disputes).
   </Step>
 
-  <Step title="Phase 4 — Mainnet Launch (T3)">
+  <Step title="Phase 4: Mainnet Launch (T3)">
     - Audit-gated mainnet deployment on Stellar + Ethereum.
     - Admin handed off to multisig on each chain;
       `ArbiterRole` held by a separate 5-of-7 multisig (3 team +
@@ -89,7 +89,7 @@ scaffolding while the BLS-based end-state is being built.
     See [Architecture — Phase 4](/reference/architecture/phase-4-mainnet).
   </Step>
 
-  <Step title="Phase 5 — Decentralization & Expansion (post-mainnet)">
+  <Step title="Phase 5: Decentralization & Expansion (post-mainnet)">
     Two foundational follow-up tranches plus several scoped
     iterations, each separately funded and timed against post-
     launch operational data:

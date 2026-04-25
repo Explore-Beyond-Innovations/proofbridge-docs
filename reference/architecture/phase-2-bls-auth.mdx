@@ -1,21 +1,14 @@
 ---
-title: "Phase 2 — BLS Auth & Pre-auth Retirement"
+title: "Phase 2: BLS Auth & Pre-auth Retirement"
 sidebarTitle: "BLS Auth"
 description: "BLS-only authentication replaces the pre-auth relayer. Both parties sign the order once; one aggregated signature gates both unlocks."
 ---
 
 <Note>
-  🔨 **Planned for T1.** Designed, not yet shipped. Replaces the
-  pre-authorization relayer with on-chain BLS aggregate verification
-  and lands several defensive contract changes in the same cutover.
+  🔨 **Planned for T1.** Replaces the pre-authorization relayer with
+  on-chain BLS aggregate verification and lands several defensive
+  contract changes in the same cutover.
 </Note>
-
-<Warning>
-  This is the **blueprint** for T1, not final source. Field names,
-  API signatures, and storage layout may shift during implementation
-  and audit. The cryptographic shape (BLS12-381 aggregation, route
-  commitment, leaf-side binding, pre-auth removal) is locked.
-</Warning>
 
 Phase 2 removes the largest live trust assumption in Phase 1 — the
 manager-signing relayer — and replaces it with a stateless
@@ -106,7 +99,7 @@ evidence, not on the unlock path itself.
 
 ## What ships next
 
-<Card title="Phase 3 — AI Agents & Dispute Resolution" icon="arrow-right" href="/reference/architecture/phase-3-agents-disputes">
+<Card title="Phase 3: AI Agents & Dispute Resolution" icon="arrow-right" href="/reference/architecture/phase-3-agents-disputes">
   Soroban custom-account contracts let makers deploy AI agents
   under scoped policies. Order `deadline` field is added; cancel
   and arbiter-driven dispute paths handle stuck or contested

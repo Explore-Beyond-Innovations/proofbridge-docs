@@ -103,19 +103,19 @@ Phase 2 introduces **BLS signature aggregation**, which will remove the relayer 
 Both the Maker and the Bridger will produce BLS signatures over the agreed order hash or Merkle root. These signatures are aggregated into a single compact proof of agreement. Once BLS aggregation is live, any actor — not just the designated relayer — can submit the aggregated proof to the destination chain's OrderPortal and complete settlement.
 
 <AccordionGroup>
-  <Accordion title="Phase 1 — Pre-auth MVP (current)">
+  <Accordion title="Phase 1: Pre-auth MVP (current)">
     The relayer is stateful and centralized. It pre-authorizes transactions, monitors confirmations, triggers proof generation, and submits proofs. You trust the relayer's liveness and honesty, but your funds cannot be stolen even if the relayer misbehaves. See [Architecture — Phase 1](/reference/architecture/current-state).
   </Accordion>
-  <Accordion title="Phase 2 — BLS auth & pre-auth retirement (next)">
+  <Accordion title="Phase 2: BLS auth & pre-auth retirement (next)">
     Maker and Bridger each sign the order once with BLS. The aggregated signature gates both `unlock` calls. The pre-auth relayer becomes a stateless, untrusted aggregator — multiple aggregators can compete to submit the same valid `unlock`, with no permission check. Adds the route-commitment defense, pause primitive, and a standalone Noir BLS auth circuit. See [Architecture — Phase 2](/reference/architecture/phase-2-bls-auth).
   </Accordion>
-  <Accordion title="Phase 3 — Agents & disputes (testnet expansion)">
+  <Accordion title="Phase 3: Agents & disputes (testnet expansion)">
     Soroban custom-account agents under scoped policies. Order `deadline` field, permissionless cancel paths after timeout, and a bonded dispute path with arbiter resolution. The multi-key `BLSKeyRegistry v2` enables single-tx agent rotation. See [Architecture — Phase 3](/reference/architecture/phase-3-agents-disputes).
   </Accordion>
-  <Accordion title="Phase 4 — Mainnet launch">
+  <Accordion title="Phase 4: Mainnet launch">
     Stellar + Ethereum mainnet, audit-gated. Admin handed off to multisig; `ArbiterRole` held by a separate 5-of-7 multisig. 24-hour operational timelock on critical admin functions. Protocol fee mechanism live; cross-chain reconciliation listener watches both chains for settlement discrepancies. See [Architecture — Phase 4](/reference/architecture/phase-4-mainnet).
   </Accordion>
-  <Accordion title="Phase 5 — Decentralization & expansion (post-mainnet)">
+  <Accordion title="Phase 5: Decentralization & expansion (post-mainnet)">
     DAO governance for the arbiter role, agent stake-and-slash for misbehavior, additional chains, RWA route partnerships, and protocol-level optimizations. See [Architecture — Phase 5](/reference/architecture/phase-5-followups).
   </Accordion>
 </AccordionGroup>
