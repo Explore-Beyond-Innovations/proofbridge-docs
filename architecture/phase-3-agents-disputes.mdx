@@ -1,5 +1,5 @@
 ---
-title: "Phase 3: AI Agents & Dispute Resolution"
+title: "Agents & Disputes"
 sidebarTitle: "Agents & Disputes"
 description: "Soroban custom-account agents under scoped policies, order deadlines and cancel paths, bonded disputes with arbiter resolution, multi-key BLS registry."
 ---
@@ -17,11 +17,11 @@ Phase 2 BLS foundation but introduce new on-chain primitives.
 
 ## Architecture diagram
 
-<img src="/reference/architecture/_diagrams/phase-3-agents-disputes.png" alt="Phase 3 architecture — Agents and disputes" />
+<img src="/architecture/_diagrams/phase-3-agents-disputes.png" alt="Phase 3 architecture — Agents and disputes" />
 
 ## Delta from Phase 2
 
-What changes vs [Phase 2](/reference/architecture/phase-2-bls-auth):
+What changes vs [Phase 2](/architecture/phase-2-bls-auth):
 
 <CardGroup cols={2}>
   <Card title="Agent Account (Soroban + EVM)" icon="robot">
@@ -54,7 +54,7 @@ What changes vs [Phase 2](/reference/architecture/phase-2-bls-auth):
   <Card title="`ArbiterRole` actor" icon="user-shield">
     A new role holds dispute-resolution authority. In T2 this equals
     the protocol admin; the role moves to its own multisig in
-    [Phase 4](/reference/architecture/phase-4-mainnet).
+    [Phase 4](/architecture/phase-4-mainnet).
   </Card>
 </CardGroup>
 
@@ -124,7 +124,7 @@ chains. Off-chain coordination keeps the two halves consistent.
 
 ## How the BLS auth circuit earns its keep
 
-The standalone Noir BLS auth circuit shipped in [Phase 2](/reference/architecture/phase-2-bls-auth)
+The standalone Noir BLS auth circuit shipped in [Phase 2](/architecture/phase-2-bls-auth)
 becomes useful here. A counterparty defending a dispute can submit a
 ZK proof attesting "I had a valid aggregated BLS authorization for
 this trade" — verifiable on-chain via the existing UltraHonk verifier
@@ -134,7 +134,7 @@ screenshots.
 
 ## What ships next
 
-<Card title="Phase 4: Mainnet Launch" icon="arrow-right" href="/reference/architecture/phase-4-mainnet">
+<Card title="Phase 4: Mainnet Launch" icon="arrow-right" href="/architecture/phase-4-mainnet">
   Stellar + Ethereum mainnet deploy, admin and ArbiterRole both hand
   off to multisigs, 24-hour timelock on critical admin actions, protocol
   fee mechanism, USDC ↔ USDC launch route, cross-chain reconciliation

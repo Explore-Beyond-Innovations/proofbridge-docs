@@ -1,5 +1,5 @@
 ---
-title: "Phase 1: Pre-auth MVP (live on testnet)"
+title: "Pre-auth MVP"
 sidebarTitle: "Pre-auth MVP"
 description: "What ProofBridge looks like today: stateful pre-auth relayer, on-chain Poseidon2 MMR per chain, ZK-proof-gated unlocks, single-key admin."
 ---
@@ -18,7 +18,7 @@ being built.
 
 ## Architecture diagram
 
-<img src="/reference/architecture/_diagrams/phase-1-current-state.png" alt="Phase 1 architecture — Pre-auth MVP" />
+<img src="/architecture/_diagrams/phase-1-current-state.png" alt="Phase 1 architecture — Pre-auth MVP" />
 
 Refer to the protocol overview pages for the actor definitions,
 the 12-step settlement flow, and the per-contract function reference:
@@ -45,10 +45,10 @@ nuance:
 - **Pre-auth signing.** Every state-changing user call carries a
   manager-signed request hash. A compromised manager key can
   authorize any user request — though it still cannot redirect funds
-  without a valid ZK proof. Retired in [Phase 2](/reference/architecture/phase-2-bls-auth).
+  without a valid ZK proof. Retired in [Phase 2](/architecture/phase-2-bls-auth).
 - **Single-key admin** on each chain. `setChain`, `setTokenRoute`,
   `setManager`, and role grants execute instantly with no delay or
-  multisig. Replaced by multisig + 24h timelock in [Phase 4](/reference/architecture/phase-4-mainnet).
+  multisig. Replaced by multisig + 24h timelock in [Phase 4](/architecture/phase-4-mainnet).
 - **Native-token wrapping** uses an internal `wNativeToken` contract
   via a sentinel address. The "native handled directly" story is an
   aspirational simplification of what the contracts actually do today.
@@ -58,7 +58,7 @@ them, see the [security model](/reference/security-model).
 
 ## What ships next
 
-<Card title="Phase 2: BLS Auth & Pre-auth Retirement" icon="arrow-right" href="/reference/architecture/phase-2-bls-auth">
+<Card title="Phase 2: BLS Auth & Pre-auth Retirement" icon="arrow-right" href="/architecture/phase-2-bls-auth">
   Both Maker and Bridger sign the order with BLS once; one
   aggregated signature gates both `unlock` calls. The pre-auth
   path is removed entirely.

@@ -1,5 +1,5 @@
 ---
-title: "Phase 2: BLS Auth & Pre-auth Retirement"
+title: "BLS Auth"
 sidebarTitle: "BLS Auth"
 description: "BLS-only authentication replaces the pre-auth relayer. Both parties sign the order once; one aggregated signature gates both unlocks."
 ---
@@ -17,11 +17,11 @@ only signers gating their own settlement.
 
 ## Architecture diagram
 
-<img src="/reference/architecture/_diagrams/phase-2-bls-auth.png" alt="Phase 2 architecture — BLS auth, pre-auth retired" />
+<img src="/architecture/_diagrams/phase-2-bls-auth.png" alt="Phase 2 architecture — BLS auth, pre-auth retired" />
 
 ## Delta from Phase 1
 
-What changes vs [Phase 1](/reference/architecture/current-state):
+What changes vs [Phase 1](/architecture/current-state):
 
 <CardGroup cols={2}>
   <Card title="Pre-auth gone" icon="circle-xmark">
@@ -91,7 +91,7 @@ the aggregate is reused at both `AdManager.unlock` and
 The two curves don't compose at the contract layer in T1 — the
 deposit proof and the BLS verification are independent gates on
 `unlock`. A combined proof is a long-term optimization tracked in
-[Phase 5](/reference/architecture/phase-5-followups).
+[Phase 5](/architecture/phase-5-followups).
 
 A standalone Noir BLS auth circuit also ships in T1 as a building
 block — used in later phases for agent attestations and dispute
@@ -99,7 +99,7 @@ evidence, not on the unlock path itself.
 
 ## What ships next
 
-<Card title="Phase 3: AI Agents & Dispute Resolution" icon="arrow-right" href="/reference/architecture/phase-3-agents-disputes">
+<Card title="Phase 3: AI Agents & Dispute Resolution" icon="arrow-right" href="/architecture/phase-3-agents-disputes">
   Soroban custom-account contracts let makers deploy AI agents
   under scoped policies. Order `deadline` field is added; cancel
   and arbiter-driven dispute paths handle stuck or contested

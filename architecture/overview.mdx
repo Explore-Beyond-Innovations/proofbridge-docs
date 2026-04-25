@@ -17,30 +17,30 @@ its core peer-to-peer-with-ZK-proof foundation.
 ## The five phases at a glance
 
 <CardGroup cols={2}>
-  <Card title="Phase 1: Pre-auth MVP" icon="circle-check" href="/reference/architecture/current-state">
+  <Card title="Phase 1: Pre-auth MVP" icon="circle-check" href="/architecture/current-state">
     ✅ **Live on testnet.** Stateful relayer with pre-auth signing,
     on-chain MMR per chain, ZK proof of inclusion at unlock,
     single-key admin. Sepolia ↔ Stellar Testnet, real bridge
     transactions settling end-to-end.
   </Card>
-  <Card title="Phase 2: BLS Auth" icon="key" href="/reference/architecture/phase-2-bls-auth">
+  <Card title="Phase 2: BLS Auth" icon="key" href="/architecture/phase-2-bls-auth">
     🔨 **Planned for T1.** Both parties sign the order with BLS, one
     aggregate gates both unlocks, pre-auth path retired entirely.
     Adds the route-commitment defense, pause primitive, and
     standalone Noir BLS auth circuit.
   </Card>
-  <Card title="Phase 3: Agents & Disputes" icon="robot" href="/reference/architecture/phase-3-agents-disputes">
+  <Card title="Phase 3: Agents & Disputes" icon="robot" href="/architecture/phase-3-agents-disputes">
     🔨 **Planned for T2.** Soroban custom-account agents under scoped
     policies, dispute paths with bonded initiation and arbiter
     resolution, multi-key BLS registry for single-tx agent rotation.
   </Card>
-  <Card title="Phase 4: Mainnet" icon="rocket" href="/reference/architecture/phase-4-mainnet">
+  <Card title="Phase 4: Mainnet" icon="rocket" href="/architecture/phase-4-mainnet">
     🔨 **Planned for T3.** Stellar + Ethereum mainnet, admin handed
     off to multisig, ArbiterRole multisig, 24h timelock, protocol
     fee mechanism, USDC ↔ USDC launch route, reconciliation
     listener.
   </Card>
-  <Card title="Phase 5: Decentralization & Expansion" icon="users" href="/reference/architecture/phase-5-followups">
+  <Card title="Phase 5: Decentralization & Expansion" icon="users" href="/architecture/phase-5-followups">
     📅 **Follow-up tranches.** DAO governance for the arbiter,
     agent slashing, additional chains, RWA route partnerships,
     and protocol-level optimizations.
@@ -53,7 +53,7 @@ The diagram below is the shape ProofBridge takes at the end of
 T3. Earlier-phase diagrams have fewer actors and contracts —
 click into each phase for the snapshot at that point.
 
-<img src="/reference/architecture/_diagrams/phase-4-mainnet.png" alt="Phase 4 architecture — Mainnet end-state" />
+<img src="/architecture/_diagrams/phase-4-mainnet.png" alt="Phase 4 architecture — Mainnet end-state" />
 
 Read the diagram top-down:
 
