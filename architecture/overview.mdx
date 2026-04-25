@@ -18,43 +18,33 @@ its core peer-to-peer-with-ZK-proof foundation.
 
 <CardGroup cols={2}>
   <Card title="Phase 1: Pre-auth MVP" icon="circle-check" href="/architecture/current-state">
-    ✅ **Live on testnet.** Real bridge transactions settle today
-    between Sepolia and Stellar Testnet. A UltraHonk ZK proof gates
-    every unlock against an on-chain Poseidon2 MMR, so the relayer
-    can't redirect funds. The relayer still pre-authorizes every
-    state-changing call as transitional scaffolding.
+    ✅ **Live on testnet.** Bridge transactions settle today between
+    Sepolia and Stellar Testnet. A ZK proof gates every unlock; a
+    pre-auth relayer sits in front of every call as transitional
+    scaffolding.
   </Card>
   <Card title="Phase 2: BLS Auth" icon="key" href="/architecture/phase-2-bls-auth">
     🔨 **Planned for T1.** Stateless BLS12-381 aggregation replaces
-    the manager-signing relayer. Maker and bridger each sign the
-    order once; their combined BLS signature sits alongside the
-    existing ZK deposit proof at every unlock, and anyone can submit
-    the call. Lands the route-commitment defense, pause primitive,
-    and a standalone Noir BLS auth circuit in the same cutover.
+    the trusted relayer. Maker and bridger each sign once; their
+    combined signature joins the existing ZK proof at every unlock,
+    and anyone can submit the call.
   </Card>
   <Card title="Phase 3: Agents & Disputes" icon="robot" href="/architecture/phase-3-agents-disputes">
-    🔨 **Planned for T2.** Soroban custom-account contracts (mirrored
-    by per-maker Safe Modules on EVM) let makers run automated agents
-    under scoped policies without handing over wallet keys. Order
-    `deadline` enables permissionless cancel paths; contested orders
-    flow through a bonded `dispute → respond → resolve` lifecycle
-    with arbiter resolution. `BLSKeyRegistry` upgrades to multi-slot
-    so agent rotation is a single tx.
+    🔨 **Planned for T2.** Soroban custom-account agents act under
+    scoped policy without holding wallet keys. Order deadlines unlock
+    permissionless cancel paths; contested orders flow through a
+    bonded dispute lifecycle.
   </Card>
   <Card title="Phase 4: Mainnet" icon="rocket" href="/architecture/phase-4-mainnet">
-    🔨 **Planned for T3.** Audit-gated launch on Stellar and Ethereum
-    mainnet over USDC ↔ USDC. Admin moves to multisigs with a
-    24-hour timelock on every fund-touching operation. `ArbiterRole`
-    moves to its own 5-of-7 multisig (3 team + 4 ecosystem signers
-    sourced via the Stellar Foundation). The 0.5% protocol fee turns
-    on — 0.3% to liquidity providers, 0.2% to the protocol.
+    🔨 **Planned for T3.** Audit-gated launch on Stellar + Ethereum
+    mainnet over USDC ↔ USDC. Admin and `ArbiterRole` move to
+    multisigs with a 24-hour timelock; the 0.5% protocol fee turns
+    on (0.3% to LPs, 0.2% to the protocol).
   </Card>
   <Card title="Phase 5: Decentralization & Expansion" icon="users" href="/architecture/phase-5-followups">
-    📅 **Follow-up tranches.** DAO governance takes over the
-    arbiter role; agents post slashable stake calibrated against
-    real mainnet misbehavior data. Plus additional chains, RWA route
-    partnerships, and protocol-level optimizations like per-route
-    fee bps and oracle-driven cross-token bonds.
+    📅 **Follow-up tranches.** DAO governance over the arbiter,
+    slashable agent stake, more chains, and RWA route partnerships
+    — all post-mainnet.
   </Card>
 </CardGroup>
 
