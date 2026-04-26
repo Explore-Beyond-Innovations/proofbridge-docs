@@ -70,7 +70,8 @@
               "guides/bridge-tokens",
               "guides/provide-liquidity",
               "guides/manage-ads",
-              "guides/track-orders"
+              "guides/track-orders",
+              "guides/integrate-the-sdk"
             ]
           },
           {

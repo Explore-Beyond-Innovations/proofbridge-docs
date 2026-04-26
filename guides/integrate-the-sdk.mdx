@@ -1,0 +1,83 @@
+---
+title: "Integrate the ProofBridge SDK"
+sidebarTitle: "Integrate the SDK"
+description: "How to integrate ProofBridge into your application — current REST API today, and the upcoming @proofbridge/sdk TypeScript package shipping with the mainnet release."
+---
+
+ProofBridge is designed to be embedded into any frontend or backend that needs cross-chain transfers. There are two integration surfaces:
+
+1. **REST API (available today)** — the relayer exposes a versioned HTTP API at [`api.pfbridge.xyz`](https://api.pfbridge.xyz). Anyone can integrate against it now.
+2. **`@proofbridge/sdk` TypeScript package (in development)** — a thin typed wrapper over the REST API plus on-chain helpers, scheduled to publish to npm alongside the mainnet release.
+
+<Note>
+  The `@proofbridge/sdk` npm package is **in development** and ships as part of
+  the mainnet release tranche (see the [Roadmap](/reference/roadmap)). Until it
+  lands on npm, integrate against the REST API directly — the SDK is a typed
+  wrapper over the same surface, so any work you do against the API today maps
+  cleanly onto the SDK later.
+</Note>
+
+## What the SDK will cover
+
+The first stable release (`@proofbridge/sdk@1.0.0`) will target four integration concerns:
+
+- **SDK init** — configure base URL, chain providers, and authenticated session in one place.
+- **Bridge initiation** — call a single method to create an order, sign the deposit, and submit it on-chain.
+- **Status polling** — subscribe to order lifecycle events without writing a polling loop.
+- **Webhook setup** — register HTTPS callbacks so your backend learns about settlement instead of polling.
+
+Final method signatures, parameter shapes, and event names will be published with the `1.0.0` release.
+
+## Today: integrate against the REST API
+
+You can build everything the SDK will offer by composing the existing endpoints. See the [API Reference](/api/overview) for the full surface.
+
+### 1. Initialize a client
+
+For now, "init" is just configuring a base URL and storing tokens. The SDK will collapse this into a single constructor call. See [Authentication](/api/authentication) for the SIWE / SEP-10 challenge flow that produces a `Bearer` access token.
+
+### 2. Initiate a bridge transfer
+
+A bridge transfer today is a three-step server interaction plus one on-chain transaction — list ads, create the trade, deposit on the source chain, then notify the relayer. The SDK will hide that orchestration behind a single `bridge()` call. See [Trades](/api/trades) for parameter details and error semantics.
+
+### 3. Poll order status
+
+Until the public socket feed is wired up, status polling is a `GET /v1/trades/:id` loop until the order reaches a terminal state. The SDK will replace this with an async event stream backed by the same endpoint plus the relayer's `socket.io` feed.
+
+### 4. Webhook setup (planned)
+
+Webhook registration is part of the SDK / dashboard release tranche — see the [Roadmap](/reference/roadmap). Until then, settlement notifications are available via polling the trade endpoint or the in-app `socket.io` channel that the frontend already uses.
+
+## Tracking SDK availability
+
+- The `@proofbridge/sdk` package is being built in lockstep with the mainnet contracts. Track the release in the [Roadmap](/reference/roadmap).
+- The OpenAPI spec is exposed at [`api.pfbridge.xyz/openapi.json`](https://api.pfbridge.xyz/openapi.json) — once the SDK ships, types are generated directly from this spec.
+- Interactive Swagger UI is available at [`api.pfbridge.xyz/docs`](https://api.pfbridge.xyz/docs).
+
+<Tip>
+  If you are integrating now and want a heads-up when the SDK lands on npm,
+  watch the [GitHub
+  repository](https://github.com/Explore-Beyond-Innovations/ProofBridge) — the
+  `1.0.0` tag triggers the published release.
+</Tip>
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="API Overview" icon="server" href="/api/overview">
+    The full REST surface — base URL, error codes, pagination.
+  </Card>
+  <Card title="Authentication" icon="key" href="/api/authentication">
+    Obtain `Bearer` tokens via SIWE (EVM) or SEP-10 (Stellar).
+  </Card>
+  <Card
+    title="Trades endpoints"
+    icon="arrow-right-arrow-left"
+    href="/api/trades"
+  >
+    Create, confirm, lock, and unlock cross-chain orders.
+  </Card>
+  <Card title="Roadmap" icon="map" href="/reference/roadmap">
+    See where SDK and webhook delivery fall in the release plan.
+  </Card>
+</CardGroup>

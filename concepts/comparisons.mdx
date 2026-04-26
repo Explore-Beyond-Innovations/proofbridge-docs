@@ -1,7 +1,7 @@
 ---
 title: "ProofBridge vs. other cross-chain bridges"
 sidebarTitle: "Comparisons"
-description: "Side-by-side comparison of ProofBridge against Hashport, Wormhole, Stargate, and LayerZero across custody, validation, and settlement."
+description: "Side-by-side comparison of ProofBridge against Allbridge, Wormhole, Stargate, and LayerZero across custody, validation, and settlement."
 ---
 
 Most cross-chain bridges share the same structural trade-offs: funds flow through a central pool, validators approve transfers, and users wait for off-chain consensus. ProofBridge takes a different approach — users hold their own assets, the two parties on a trade are the only signers, and settlement is proof-based.
@@ -10,7 +10,7 @@ The table below compares the design choices across the protocols we are most oft
 
 ## Feature comparison
 
-| Feature | ProofBridge | Hashport | Wormhole / Stargate / LayerZero |
+| Feature | ProofBridge | Allbridge | Wormhole / Stargate / LayerZero |
 |---|:---:|:---:|:---:|
 | User controls assets always | ✅ | ❌ | ❌ |
 | No external validators | ✅ | ❌ | ❌ |
@@ -31,7 +31,7 @@ Traditional bridges route every transfer through a shared pool or multisig — a
 
 ProofBridge does not depend on a third-party validator set to attest to transfers. In the BLS end-state, the only signers on a trade are the two counterparties themselves.
 
-Hashport, Wormhole, Stargate, and LayerZero all route transfers through an external validator set (guardians, relayers, or oracles) that must sign off before funds move. Those validators are a trust assumption and a target.
+Allbridge, Wormhole, Stargate, and LayerZero all route transfers through an external validator set (Allbridge's validator network, Wormhole guardians, LayerZero relayers and oracles) that must sign off before funds move. Those validators are a trust assumption and a target.
 
 ### Peer-to-peer consensus (BLS)
 
