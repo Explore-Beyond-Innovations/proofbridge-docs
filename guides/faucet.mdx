@@ -90,10 +90,29 @@ threshold acts as the rate limiter.
 
 ## When the faucet doesn't give you what you need
 
+The in-app faucet only mints **bridgeable** tokens. Native gas
+(Sepolia ETH, Stellar XLM) and mainnet tokens are out of scope.
+
+### Get Sepolia ETH
+
+You need a small amount of Sepolia ETH to pay gas on the EVM side of
+any bridge. Use a public testnet faucet — most gate against bots
+with a GitHub login, a tweet, or a tiny mainnet balance, so if one
+is dry, try the next:
+
+- [GetBlock Sepolia faucet](https://getblock.io/faucet/eth-sepolia/)
+- [Chainlink Sepolia faucet](https://faucets.chain.link/sepolia)
+
+### Get Stellar Testnet XLM
+
+Stellar Testnet uses [friendbot](https://friendbot.stellar.org/) —
+instant, unlimited, no sign-up. Visit `https://friendbot.stellar.org/?addr=<your-address>`
+or hit **Fund account** in Freighter while on Testnet.
+
+### Other
+
 | You need… | Use… |
 |---|---|
-| Sepolia ETH for gas | A public Sepolia faucet (Alchemy, Infura, QuickNode, Chainlink). Requires a small mainnet balance or GitHub login. |
-| Stellar Testnet XLM for gas | [friendbot](https://friendbot.stellar.org/) — instant, unlimited, no sign-up. |
 | Bridgeable ERC-20 / SAC / SEP-41 | The in-app [Faucet](https://app.pfbridge.xyz/faucet). |
 | Mainnet tokens | Not supported. ProofBridge is testnet-only today. |
 
