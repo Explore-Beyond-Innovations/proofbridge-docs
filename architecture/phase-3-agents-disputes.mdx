@@ -1,19 +1,24 @@
 ---
 title: "Agents & Disputes"
 sidebarTitle: "Agents & Disputes"
-description: "Soroban custom-account agents under scoped policies, order deadlines and cancel paths, bonded disputes with arbiter resolution, multi-key BLS registry."
+description: "Maker agents under scoped policies, one termination primitive for stuck orders, and the dispute design: evidence beats any ruling, an arbiter that rules only the evidence vacuum, value-scaled bonds, and the boundaries Tranche 2 states openly."
 ---
 
 <Note>
-  🔨 **Planned for T2.** Builds on Phase 2's BLS-only auth model.
-  Lands the agent-account model and dispute-handling paths on testnet,
-  plus the multi-key `BLSKeyRegistry` upgrade.
+  **Built in Tranche 2 (2026).** This page is the published dispute spec for
+  deliverable 2.3: the design as it runs on testnet, the boundaries it states
+  openly, and what the second external audit covers.
 </Note>
 
 Phase 3 adds two capabilities held back from earlier phases:
-**automated maker liquidity ops under a scoped policy**, and
-**dispute paths for stuck or contested orders**. Both build on the
-Phase 2 BLS foundation and introduce new on-chain primitives.
+**automated maker liquidity operations under a scoped policy**, and
+**a way for a stuck or contested order to end in the right place**. Both
+build on the Phase 2 BLS foundation.
+
+The dispute design in one line: **proof beats people.** A settlement that
+can be proven always goes through, whatever anyone rules. The arbiter only
+decides the cases where no such proof exists, and a dispute nobody rules on
+ends in a mutual refund on its own clock.
 
 ## Architecture diagram
 
@@ -26,34 +31,36 @@ What changes vs [Phase 2](/architecture/phase-2-bls-auth):
 <CardGroup cols={2}>
   <Card title="Agent Account (Soroban + EVM)" icon="robot">
     Maker deploys their own contract — Soroban custom account with
-    `__check_auth`, or per-maker Safe Module on EVM. Stores a policy
-    table per agent (allowed actions, token whitelist, per-order cap,
-    rate limit, expiry, revocation flag).
+    `__check_auth`, or a per-maker module on EVM. Stores a policy per
+    agent (allowed actions, token whitelist, per-order cap, rate limit,
+    expiry, revocation flag, a settlement signer).
   </Card>
   <Card title="Multi-key `BLSKeyRegistry` v2" icon="layer-group">
-    Replaces Phase 2's single-key registry. Each address can hold up
-    to 5 active key slots with stable monotonic IDs and a `valid_until`
-    timestamp per slot. `unlock` takes a slot hint so pairing-check
-    cost stays at one attempt.
+    Replaces Phase 2's single-key registry. Each address holds up to 5
+    active key slots with stable ids and a `valid_until` per slot; an
+    owner signature over one readable message registers a key on both
+    chains.
   </Card>
-  <Card title="`OrderData` gains `deadline`" icon="clock">
-    The `Order` struct expands from 15 to 16 fields — a signed
-    `deadline` set per route. Both parties sign the deadline; each
-    chain validates it's within bounds at create / lock time.
+  <Card title="The order carries its deadline" icon="clock">
+    The `Order` struct grows to 17 signed fields, including a `deadline`
+    set per route. Both parties sign it; each chain checks it at create
+    and lock time. Every later clock (cancel, dispute) runs off it.
   </Card>
-  <Card title="Cancel paths" icon="rotate-left">
-    `cancel_order` (OrderPortal) and `cancel_lock` (AdManager) are
-    permissionless after deadline. Refunds via pull-payment escrow,
-    unwinds maker `ad.locked` back into ad balance.
+  <Card title="One termination primitive" icon="rotate-left">
+    `claim → presentation window → finalize`. A stuck order is claimed on
+    the primary leg at its deadline; anyone with evidence that the trade
+    settled presents it inside the window; absence of evidence cancels.
+    Nothing finalizes before `deadline + buffer`.
   </Card>
-  <Card title="Dispute lifecycle" icon="scale-balanced">
-    `dispute()` posts a bond and moves the order into `Disputed`.
-    `respond_to_dispute()` lets the counterparty add evidence.
-    `resolve_dispute()` pays out per a discrete `DisputeOutcome` enum.
+  <Card title="Dispute module" icon="scale-balanced">
+    `fileDispute` posts a value-scaled bond and freezes the order on the
+    primary leg. Evidence ends a dispute at any time. A ruling only opens a
+    window. `finalizeDispute` is permissionless.
   </Card>
-  <Card title="`ArbiterRole` actor" icon="user-shield">
-    A new role holds dispute-resolution authority. In T2 this equals
-    the protocol admin; the role moves to its own multisig in
+  <Card title="`ArbiterRole`, vacuum-only" icon="user-shield">
+    The arbiter rules only when no settlement evidence exists, from a menu
+    of three outcomes; it can never rule "the trade went through". In T2
+    the role equals the protocol admin; it moves to its own multisig in
     [Phase 4](/architecture/phase-4-mainnet).
   </Card>
 </CardGroup>
@@ -65,79 +72,249 @@ A maker who wants automated liquidity operations:
 <Steps>
   <Step title="Deploy an Agent Account">
     Soroban: deploy a custom-account contract that implements
-    `__check_auth`. EVM: deploy a per-maker Safe + Safe Module. Either
-    way, the maker is the owner.
+    `__check_auth`. EVM: deploy the per-maker agent module. Either way,
+    the maker is the owner.
   </Step>
   <Step title="Set the agent's policy">
-    Owner calls `set_policy(agent_pubkey, policy)` with allowed actions,
-    token whitelist, per-order cap, rate limit, expiry, and revocation
-    flag.
+    Owner calls `set_policy(agent, policy)` with allowed actions (today
+    only `lock_for_order`), token whitelist, per-order cap, rate limit,
+    expiry, revocation flag, and the settlement signer the agent settles
+    as.
   </Step>
-  <Step title="Register the agent's BLS pubkey">
-    Owner registers the agent's BLS public key against the Agent
-    Account's address. The agent becomes the maker's BLS-signing
+  <Step title="Register the agent's BLS key">
+    Owner signs one message that registers the agent's BLS public key on
+    both chains' registries. The agent becomes the maker's BLS-signing
     identity for trades within policy.
   </Step>
   <Step title="Point ads at the Agent Account">
-    Maker creates ads with `ad_creator = agent_account_address`. The
-    agent can call `lock_for_order` and produce BLS signatures within
-    policy bounds — without ever holding the maker's wallet key.
+    Maker creates ads whose settlement signer is the agent. The agent can
+    call `lock_for_order` and co-sign settlements within policy bounds
+    without ever holding the maker's wallet key.
   </Step>
   <Step title="Rotate keys in one tx">
-    To replace an agent (compromise, software change), the maker adds
-    a new BLS key slot and sets `valid_until` on the old slot. No need
-    to close ads or migrate liquidity.
+    To replace an agent (compromise, software change), the maker adds a
+    new key slot and sets `valid_until` on the old one, or retires it.
+    No need to close ads or migrate liquidity.
   </Step>
 </Steps>
 
-Agents cannot initiate disputes, modify their own policy, touch funds
-outside the maker's ads, or operate beyond `valid_until` / rate-limit
-ceilings.
+Agents cannot file disputes, modify their own policy, touch funds outside
+the maker's ads, or operate beyond `valid_until` or the rate-limit ceiling.
 
 ## How disputes work
 
-The order lifecycle expands from `None → Open → Filled` to include two
-new branches:
+### The states
+
+The order lifecycle on the primary leg (the `AdManager`, on the ad chain):
 
 ```text
-None → Open → Filled                    (happy path, unchanged from Phase 2)
-       Open → Cancelled                 (timeout-based unwind after deadline)
-       Open → Disputed → Resolved       (challenge path before deadline)
+None → Open → Filled                              happy path: the co-signed unlock
+       Open → Claimed → Cancelled                  the termination primitive at the deadline
+       Open → Disputed → Filled                    evidence landed: TradeProceeds
+       Open → Disputed → Resolved                  a ruling, or the no-ruling fallback
 ```
 
-Disputes are raisable on either chain while the order is `Open` and
-**before** the route's deadline. After deadline, the cancel path takes
-over — no arbiter needed. The bond + arbiter judgement deters frivolous
-disputes; the system self-regulates on incentives.
+Only the primary has a dispute. The follower leg (the `OrderPortal`, on the
+order chain) has no dispute surface at all. It learns how a dispute ended
+from the leaf the primary writes into its Merkle Mountain Range, and acts on
+that leaf alone, the same way it learns every other cross-chain fact.
 
-`DisputeOutcome` covers the four real-world resolutions:
+### Filing and the bond
 
-| Outcome | Source side (OrderPortal) | Destination side (AdManager) |
-|---|---|---|
-| `MutualRefund` | Bridger refunded | `ad.locked -= ad_amount` (back into ad balance) |
-| `TradeProceeds` | Bridger's deposit → maker's recipient | Maker's locked balance → bridger's recipient |
-| `BridgerForfeit` | Bridger's deposit → maker (forfeit) | `ad.locked -= ad_amount` |
-| `MakerForfeit` | Bridger refunded | Maker's locked balance → bridger's recipient |
+Either party to an order can file a dispute on the primary while the order
+is `Open`, before the route's deadline. Filing does three things and
+nothing more: it posts a bond, it stops the cancel clock on the primary,
+and it hands the dispute to the dispute module, which keeps the record and
+the money. Filing pays nobody and decides nothing. The counterparty may
+`respondToDispute`, which records an evidence hash on the dispute; it moves
+no funds.
 
-The arbiter is responsible for issuing matching outcomes on both
-chains. Off-chain coordination keeps the two halves consistent.
+The bond is wrapped native, sized **`max(floor, bps × order amount)`**, both
+parameters admin-set per peer chain and validated fail-closed:
+`challengePeriod` is at least one hour, `bondFloor` is non-zero, `bondBps`
+is at most 1000 (10%). Scaling the bond with the order removes the
+free-cancel exposure a flat bond would leave on large orders; the
+parameters are re-tuned from soak data.
+
+### Evidence beats any ruling
+
+**Protocol evidence overrides arbitration, never the reverse.** Settlement
+evidence is one of two things:
+the co-signed unlock itself, or a ZK proof that the counterparty's leg
+settled, carried across as a leaf in the other chain's MMR.
+
+Presented evidence terminates a `Disputed` order to `TradeProceeds` **at any
+time**, not only at the challenge deadline. The order
+ends `Filled`, the real unlock runs, and the nullifier is consumed as in the
+happy path. A dispute can delay a provable settlement only by the time it
+takes someone to present the proof.
+
+The arbiter fills the evidence vacuum and cannot contradict evidence. It
+cannot execute `TradeProceeds`, manufacture a dispute, or act on an order
+that is not `Disputed`. A compromised agent is handled by key retirement,
+policy caps and the maker's `min_rate`, not by clawing back a provably
+authorized settlement.
+
+### The arbiter rules the vacuum
+
+A ruling is **propose-then-window**. `resolveDispute`
+records one of `MutualRefund`, `BridgerForfeit` or `MakerForfeit` and opens
+a presentation window ending at `max(now, deadline) + buffer`. Inside that
+window the losing side can still present settlement evidence, which
+overrides the ruling. After it, `finalizeDispute` applies the ruling and
+moves the order to `Resolved`. `finalizeDispute` is permissionless; the
+relayer's janitor sends it on the parties' behalf, and anyone may.
+
+If nobody rules, the dispute does not hang. Once the challenge deadline
+passes, anyone can finalize it and the outcome is `MutualRefund`. Nothing
+depends on the arbiter ever showing up. The deadline respects both clocks
+(the challenge period and the order's own window) and every pause since the
+order was locked, because a paused escrow stops the parties from presenting
+evidence.
+
+No automatic finalization, from either entry state, completes before
+`deadline + buffer`.
+
+### The four outcomes
+
+| Outcome | How it arises | Primary leg (`AdManager`) | Leaf written | Follower leg (`OrderPortal`) |
+|---|---|---|---|---|
+| `TradeProceeds` | evidence only, never a ruling | the co-signed unlock or `presentSettled` pays the bridger; order `Filled` | `SETTLED` | `presentSettled` if the maker's leg is not already `Filled` |
+| `MutualRefund` | a ruling, or no ruling by the deadline | `ad.locked −= amount`; the lock returns to ad liquidity; `Resolved` | `CANCEL` | `refundByCancel`: the bridger is refunded |
+| `BridgerForfeit` | a ruling | `ad.locked −= amount`; the lock returns to the maker's liquidity; `Resolved` | `FORFEIT` | `payMakerByForfeit`: the bridger's deposit goes to the maker |
+| `MakerForfeit` | a ruling | the maker's stake is paid to the order recipient; `Resolved` | `CANCEL` | `refundByCancel`: the bridger ends up with both legs |
+
+Every ruling that means "refund the bridger" reuses the cancel path the
+follower already had. Only a bridger forfeit needed a leaf domain of its
+own, because handing the follower a `CANCEL` proof for a forfeit would be a
+proof of the opposite ruling. The arbiter does not "issue matching outcomes
+on both chains": it rules once, on the primary, and the follower follows
+the leaf.
+
+### Where the bond goes
+
+One rule: the bond returns to the filer only when the finding was on their
+side.
+
+| How the dispute ends | Bond destination |
+|---|---|
+| Evidence terminates it (`TradeProceeds`) | forfeited to the protocol fee pool: the filer disputed a provably settleable trade |
+| `MutualRefund` (ruling or fallback) | returned to the filer: neither side was shown wrong |
+| A forfeit ruling against the party the filer accused | returned to the filer |
+| A forfeit ruling against the filer | forfeited to the protocol fee pool |
+
+All outcome payouts and the forfeited bond route through the pull-payment
+escrow; the fee pool is a credit, never a push transfer, so a reverting
+recipient cannot block resolution. An unset fee pool sends the bond back to
+the filer rather than stranding it.
+
+### The nullifier resolves by path
+
+The **evidence path** runs the real unlock and consumes the nullifier
+naturally. The **arbiter path** publishes no proof, so no nullifier exists
+to consume; the terminal `Resolved` status is the replay guard.
+
+### What the relayer does, and does not do
+
+The relayer holds no dispute authority and cannot move funds on its own.
+Its dispute watch asks the first question whenever a dispute is filed: did
+the trade settle on the other chain? If so it presents that proof, which
+ends the dispute without a ruling. Otherwise it assembles a tamper-evident
+case file for the human arbiter before the challenge deadline, and pages
+when a dispute is about to expire unresolved. Its only writes are the
+ordinary, permissionless, proof-carrying calls (`finalizeDispute`,
+`presentSettled`, `refundByCancel`, `payMakerByForfeit`) that anyone could
+send. If the whole relayer were down, the parties could still present their
+own evidence and the arbiter could still rule.
 
 ## Using the BLS auth circuit in disputes
 
 The standalone Noir BLS auth circuit from
-[Phase 2](/architecture/phase-2-bls-auth) finds its first real use
-here. A counterparty defending a dispute can submit a ZK proof
-attesting "I had a valid aggregated BLS authorization for this trade"
-without publishing the raw aggregated signature off-chain. The
-existing UltraHonk verifier checks the proof on-chain, and the
-arbiter sees a portable cryptographic claim instead of asking for
-screenshots.
+[Phase 2](/architecture/phase-2-bls-auth) lets a party prove "I held a
+valid aggregated BLS authorization for this trade" without publishing the
+raw aggregated signature. The main evidence in a dispute is the settlement
+leaf itself, verified on-chain by the `events` circuit; the auth proof
+remains available as responder evidence.
+
+## Known boundaries
+
+The risk analysis behind this design found forty-one issues across three
+surfaces. Fourteen cannot be closed within Tranche 2 and are accepted
+deliberately. They are **stated boundaries, not oversights**, and this page
+is where they are published, so that a reviewer reads a declared boundary
+rather than an unnoticed gap. The deep dives are linked under Sources.
+
+| # | Boundary | What remains | What closes the rest |
+|---|---|---|---|
+| 1 | **Cross-chain atomicity**: the two legs share no truth. The cancel route is closed by cancellation proofs; the dispute route by the settlement leaf plus evidence termination | the buffered maker-unlock boundary (the grace buffer) | the T3.5 listener, whose job is root notary |
+| 2 | **Withhold-to-refund**: co-signing is voluntary, so a party can deny a provable settlement by not signing | managed by reputation (the counterparty fail-rate scoring); free on-chain for one-shot accounts | a later fee decision or single-sided attestation (unscoped) |
+| 3 | **Single-admin arbiter**: T2 ships admin-as-arbiter | the arbiter fills the evidence vacuum only and can never contradict evidence (`TradeProceeds` is evidence-exclusive; rulings open a window) | T3 M-of-N (at least 2 non-team), guarding a smaller power |
+| 4 | **Bond ceiling** | closed: the value-scaled bond `max(floor, X%·value)` is the mechanism | parameters re-tuned from soak data |
+| 5 | **Owner-wallet compromise** | opt-in extractive-action timelocks (protective actions never delayed) turn instant total loss into a time-boxed flow; multisig custody for institutions; instant loss remains for retail accounts declining guardrails and for 7702 makers | T3 recovery and guardian schemes |
+| 6 | **Price floor**: not an oracle problem | `AgentPolicy.min_rate` per pair is the maker's own limit, enforced in `check_contract_call`; loss is bounded by the maker-chosen spread × caps | bound staleness; fails safe |
+| 7 | **Keyless accounts can't register cross-chain** | the EOA identity routes around it; the proof-carried registration path is built behind a flag (`Side.Registered`, the home-chain registrar) | the flag flips once the anchor is quorum-backed (T3) |
+| 8 | **`target_root` authenticity is external** | two co-signatures are the only gate before escrow | a zk light client or SCP proving (does not exist today) |
+| 9 | **`_fieldMod` canonicality** | closed: the escrow rejects non-canonical public inputs (at or above the field prime) on both chains, for both circuits | — |
+| 10 | **Immutable accounts vs un-voted protocol**: Protocol 28's ADDRESS_V2 / CAP-85 can't be fully tested before their votes | a miss means a redeploy | tracking only; nothing structural |
+| 11 | **Width narrowing** | closed: `salt` is `U256` on Soroban; the `amount` narrowing is an explicit invariant on both chains | — |
+| 12 | **Time-to-unwind is inherent** | every stranded path resolves through the provable-first primitive to the correct outcome (settle if evidence exists, refund otherwise); what remains is the **time**: capital stays locked until `deadline + buffer`, plus proof and anchor latency on the follower leg | same as 1 |
+| 13 | **The RootAnchor trust tier**: refunds trust an admin-tier hot key to notarize counterpart-chain roots | hardened by the optimistic `ANCHOR_DELAY` window, key separation and the provable-first backstop; fraud is self-documenting | retires up the ladder: T3.5 listener quorum, then a light client |
+| 14 | **Presentation liveness**: every timeout, dispute and backstop finalization is safe only if one holder of public evidence acts within the window | the victim is always in that set; universal silence degrades a co-signed trade to a symmetric unwind: finality loss, never theft | watchtower and auto-arbiter duties reduce it; only consensus-verified state removes it |
+
+Three of these (1, 7, 8) are not independent. They are the same fact seen
+three ways: the chains cannot observe each other. ProofBridge's constitution
+is that no committee, no oracle and no messaging layer sits between the
+chains; the only thing that crosses is a ZK proof plus a BLS co-signature,
+data any party can carry.
+
+## What the second external audit covers
+
+The on-chain code that is new in Tranche 2, handed to audit batch 2 as one
+list:
+
+1. `AgentPolicy.settlement_signer` and its lock-time policy check;
+2. `Ad.settlementSigner` and the escrow consistency check, on both chains;
+3. `setSettlementSigner`, a new state-changing entry point;
+4. the registry v2 slot machinery and its retirement path;
+5. the `resolve_by_evidence` primitive: the timeout default, the
+   cancellation and settlement leaves, the proof-gated refund path, the
+   `RootAnchor` module, `claim` un-gated from pause, and the fund-bearing
+   TTL rule, together with the `events` circuit (leaf domains: cancel = 2,
+   settled = 3) and its generated verifier, audited once as one
+   fund-moving path;
+6. the permissionless, contract-verified resolution path the relayer's
+   dispute watch depends on.
+
+## Sources
+
+The design and its analysis live in the ProofBridge monorepo under
+`docs/research/t2/` (the repository is private; these links work for
+contributors):
+
+- The dispute design, section by section (the termination primitive,
+  evidence termination, the arbiter's scope, the bond table, the nullifier,
+  bond sizing):
+  [`contracts/t2-design-amendment/`](https://github.com/Explore-Beyond-Innovations/ProofBridge/tree/develop/docs/research/t2/contracts/t2-design-amendment).
+- The arbitration design: [`contracts/arbitration/`](https://github.com/Explore-Beyond-Innovations/ProofBridge/tree/develop/docs/research/t2/contracts/arbitration);
+  the termination primitive and the root anchor:
+  [`contracts/cancellation-proofs/`](https://github.com/Explore-Beyond-Innovations/ProofBridge/tree/develop/docs/research/t2/contracts/cancellation-proofs).
+- The known boundaries, with the three deep dives (atomicity, keyless
+  registration, root authenticity):
+  [`risks/residuals/`](https://github.com/Explore-Beyond-Innovations/ProofBridge/tree/develop/docs/research/t2/risks/residuals).
+- The audit scope:
+  [`design/10-decisions/10.6-actions.md`](https://github.com/Explore-Beyond-Innovations/ProofBridge/blob/develop/docs/research/t2/design/10-decisions/10.6-actions.md).
+- As built, scenario by scenario (filing and the bond, rulings and evidence
+  supremacy, the outcomes and the follower, the no-ruling fallback and
+  pauses, the auto-arbiter):
+  [`docs/engineering/scenarios/C-disputes/`](https://github.com/Explore-Beyond-Innovations/ProofBridge/tree/develop/docs/engineering/scenarios/C-disputes).
+- The contracts: [`proofbridge-contracts`](https://github.com/Explore-Beyond-Innovations/proofbridge-contracts)
+  (`DisputeManager.sol`, `libraries/Dispute.sol`, and the Soroban
+  `dispute-manager` crate).
 
 ## What ships next
 
 <Card title="Phase 4: Mainnet Launch" icon="arrow-right" href="/architecture/phase-4-mainnet">
-  Stellar + Ethereum mainnet deploy, admin and ArbiterRole both hand
+  Stellar + Ethereum mainnet deploy, admin and `ArbiterRole` both hand
   off to multisigs, 24-hour timelock on critical admin actions, protocol
-  fee mechanism, USDC ↔ USDC launch route, cross-chain reconciliation
-  listener.
+  fee mechanism, USDC ↔ USDC launch route, the root-notary listener.
 </Card>
