@@ -28,6 +28,7 @@
     "versions": [
       {
         "version": "v3",
+        "default": true,
         "tabs": [
           {
             "tab": "Documentation",
