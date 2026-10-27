@@ -38,10 +38,31 @@ The faucet refuses a claim when:
 
 ## Gas
 
-- **Sepolia ETH:** any public Sepolia faucet
-- **Testnet XLM:** Stellar Friendbot funds new accounts
+The Faucet page doesn't give out gas. Get it from the chains' own faucets:
+
+- **Sepolia ETH** for your Ethereum wallet. Use any of these; most ask you
+  to sign in or hold a little mainnet ETH, so if one is dry, try the next:
+  - [Alchemy Sepolia faucet](https://www.alchemy.com/faucets/ethereum-sepolia)
+  - [GetBlock Sepolia faucet](https://getblock.io/faucet/eth-sepolia/)
+  - [Chainlink Sepolia faucet](https://faucets.chain.link/sepolia)
+- **Testnet XLM** for your Stellar wallet: Stellar's Friendbot creates and
+  funds a testnet account, free and instantly.
 
 <Note>
 Key registration gas is paid by the relayer on both chains. You only need
 gas for your own deposits, locks and ad transactions.
 </Note>
+
+### Gas for a hosted pod
+
+A pod pays the fee for every lock from its own Ethereum and Stellar accounts,
+not from your wallet. Fund them on the pod's **Fund your agent's gas** step,
+or later from its **Machine** tab:
+
+- **Top up ETH / Top up XLM** sends from your connected wallet.
+- **Use Friendbot** funds the pod's Stellar account on testnet, with no XLM of
+  your own.
+- For test ETH, use a Sepolia faucet above and send it to the pod's Ethereum
+  address shown on the card (it has a copy button).
+
+See [Hosted pods](/v3/guides/hosted-pods) for the full setup.
