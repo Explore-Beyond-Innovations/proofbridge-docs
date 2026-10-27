@@ -54,15 +54,18 @@ The setup page follows your pod through each step and updates on its own.
     identity.
   </Step>
   <Step title="Sign Emergency Stop">
-    Sign the pod key's emergency stop, so the key can be switched off even
-    if ProofBridge is down. If your own key is on the same identity, sign
-    one for it too.
+    Sign the pod key's emergency stop. ProofBridge keeps it and sends it,
+    without you online, if the pod is revoked from your agent account or in
+    an incident. If your own key is on the same wallet, sign one for it too:
+    when the stops are sent, your own key on that wallet ends as well.
   </Step>
   <Step title="Fund your agent">
     The pod pays the network fee for every lock from its own accounts on
-    each chain. Top them up from the page; on Stellar, **Fund with
-    Friendbot** creates the account on testnet. ProofBridge emails your
-    contact address if a balance runs low.
+    each chain. Top them up from the page; on Stellar, **Use Friendbot**
+    creates and funds the account on testnet. See
+    [Gas for a hosted pod](/v3/guides/faucet#gas-for-a-hosted-pod) for where
+    to get test ETH. ProofBridge emails your contact address if a balance
+    runs low.
   </Step>
   <Step title="Go Live">
     When the pod, key, ad and emergency stop are ready, click **Go Live**.
