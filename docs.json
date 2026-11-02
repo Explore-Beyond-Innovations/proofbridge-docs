@@ -83,6 +83,7 @@
                   "v3/guides/linked-accounts",
                   "v3/guides/set-up-an-agent",
                   "v3/guides/hosted-pods",
+                  "v3/guides/connect-a-tool",
                   "v3/guides/network-dashboard",
                   "v3/guides/report-a-bug"
                 ]
@@ -137,6 +138,12 @@
                   "v3/api/keys",
                   "v3/api/accounts",
                   "v3/api/pods"
+                ]
+              },
+              {
+                "group": "MCP",
+                "pages": [
+                  "v3/api/mcp"
                 ]
               },
               {

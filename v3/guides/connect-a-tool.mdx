@@ -1,0 +1,139 @@
+---
+title: "Connect a tool"
+description: "Let Claude or another MCP client read your ProofBridge account, and take that access away again"
+---
+
+ProofBridge runs an [MCP](https://modelcontextprotocol.io) server. Connect it to
+Claude, or to any MCP client, and you can ask about your account in plain
+language instead of reading four screens and comparing them yourself.
+
+The access is **read-only**. A connected tool can see your pods, ads, trades and
+settlement keys. It cannot create an ad, change a policy, move funds or retire a
+key — those need a signature from your wallet, and a connected tool has no key to
+sign with.
+
+## Why connect one
+
+Most of what goes wrong on ProofBridge is spread across places that each look
+fine on their own. A pod is live, a key is registered, a trade is locked — and it
+still will not co-sign.
+
+A connected tool reads all of it at once. Ask *"why can't I co-sign this trade?"*
+and it checks your pods, your keys and the order together, then answers: the key
+the trade is pinned to belonged to a pod you deleted.
+
+## Connect it
+
+You need to be signed in to ProofBridge in a browser on the same machine.
+
+<Steps>
+  <Step title="Add the server to your client">
+    In Claude Code, run:
+
+    ```bash
+    claude mcp add --transport http proofbridge https://mcp.pfbridge.xyz/mcp
+    ```
+
+    Other clients take the same address. There is nothing to install and no
+    token to paste — the client fetches what it needs from the server itself.
+  </Step>
+  <Step title="Approve it in the browser">
+    The client sends you to a ProofBridge page asking whether to allow it. The
+    page names the application, lists what it will be able to read, and shows
+    the address it will send you back to.
+
+    Click **Allow read-only access**.
+
+    <Frame caption="The consent screen: the name it registered with, the address it sends you back to, and what it will be able to read">
+      <img src="/images/v3/mcp-01-consent.png" alt="The ProofBridge consent screen headed 'Allow Claude Desktop to read your account?', saying it registered as Claude Desktop and will send you to 127.0.0.1:33418, with five ticked read permissions, a line reading 'It can't create, change or move anything', and Allow read-only access and Decline buttons" />
+    </Frame>
+  </Step>
+  <Step title="Ask it something">
+    The client comes back connected. Try *"check the state of my ProofBridge
+    account"* — that runs `pb_check_state`, which correlates everything and
+    reports only what does not agree.
+  </Step>
+</Steps>
+
+## Read the consent screen before you approve
+
+Two things on that page are worth a second.
+
+**The name is the one it registered with us**, not one it chose in the link that
+brought you there. An application can call itself anything; this is the name
+ProofBridge has on file for it.
+
+**The address it sends you back to** is the fact a hostile application cannot
+fake. For a desktop client it is a `localhost` address with a port. If you
+expected a local tool and the page names somewhere on the internet, decline.
+
+Nothing is shared until you press the button. Declining tells the application you
+said no, and nothing is created.
+
+## What it can read
+
+| | |
+| --- | --- |
+| Pods | health, gas, which ad each serves, when it last co-signed |
+| Ads | including the address each one pays |
+| Trades | and the settlement key each is pinned to |
+| Keys | your registered keys, and which registry slots are live |
+| All of it together | correlated, with whatever does not agree reported |
+
+And what it cannot, with this approval or any other:
+
+- Create, change or close an ad
+- Change a policy, move funds or withdraw gas
+- Retire a key, delete a pod or go live
+
+Write access is coming, but not this way. It will arrive the way your pod already
+works — you delegate a key to your agent under caps you set on chain — so the
+limits live on the chain rather than in a promise an app makes.
+
+## See what has access, and remove it
+
+Go to **My Agents → your agent → MCP**. The **What has access** section lists
+every application you have approved and when each last read anything.
+
+<Frame caption="The MCP tab: the address to connect with, and every application that has access">
+  <img src="/images/v3/mcp-02-tab.png" alt="The MCP tab on an agent page, showing what a connected tool can do beside a greyed Coming soon column, the claude mcp add command with a copy button, a collapsed list of 8 tools, and a What has access section listing one connected app with its expiry, last use and a Remove button" />
+</Frame>
+
+**Remove** stops it at once. There is no delay and nothing cached — the server
+checks with ProofBridge on every single request, so a removed application stops
+working on its next one. You can approve it again later.
+
+The list is for your whole account, not one agent, so you see the same
+applications under each of your agents.
+
+<Note>
+  `Last used` is the signal worth watching. If an application you only use on
+  your laptop reports reading something while your laptop was off, remove it.
+</Note>
+
+## Good to know
+
+**Approving the same application again replaces its access** rather than adding
+a second entry, so the list stays readable.
+
+**Access lasts 30 days**, then the application asks you to approve it again. A
+tool that cannot open a browser — a script, a CI job — needs a different kind of
+token; ask us and we will issue one from the command line. We do not put a
+paste-able credential on a web page.
+
+**Treat the access like a password.** Read-only is smaller than full control, not
+the same as harmless: whoever holds it can see your wallet addresses, balances,
+pod ids, trade history and who you have traded with. Approve tools you trust, and
+remove access when you are done.
+
+## If it does not connect
+
+| What you see | What it means |
+| --- | --- |
+| The browser never opens | The client could not reach `https://mcp.pfbridge.xyz/mcp`. Check the address, and that you are online. |
+| **Sign in to continue** on the consent page | You are not signed in to ProofBridge in that browser. Connect your wallet on the page, then approve. |
+| "This site can't be reached" after approving | Your approval worked; the client's local callback had already stopped listening. Run the connect command again and approve promptly. |
+| It connects but every question fails | The access was removed, or 30 days have passed. Reconnect and approve again. |
+
+For what the server exposes and how the authorization flow works, see
+[MCP server](/v3/api/mcp) in the API reference.
