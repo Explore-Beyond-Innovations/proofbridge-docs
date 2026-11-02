@@ -1,0 +1,159 @@
+---
+title: "MCP server"
+description: "The hosted MCP server, the OAuth 2.1 flow that gets a client read-only access, and the tools it exposes"
+---
+
+ProofBridge hosts an [MCP](https://modelcontextprotocol.io) server at
+`https://mcp.pfbridge.xyz/mcp`, over Streamable HTTP. A client authorizes with
+OAuth 2.1 and receives a **read-scoped** access token — the same kind of token
+the relayer issues anywhere else, so revocation, the token list and introspection
+all work on it unchanged.
+
+For the user-facing walkthrough, see [Connect a tool](/v3/guides/connect-a-tool).
+
+## Endpoints
+
+| Endpoint | Auth | Purpose |
+| --- | --- | --- |
+| `POST /mcp` | read token | the MCP session (Streamable HTTP) |
+| `GET /healthz` | none | liveness; answers without reaching the relayer |
+| `GET /.well-known/oauth-protected-resource/mcp` | none | RFC 9728 resource metadata |
+| `GET /.well-known/oauth-authorization-server` | none | the relayer's metadata, mirrored here |
+
+The authorization server is the **relayer**, not this server:
+
+| Endpoint | Auth | Purpose |
+| --- | --- | --- |
+| `POST /v1/oauth/register` | none | RFC 7591 dynamic client registration |
+| `GET /v1/oauth/authorize` | none | checks the request, then sends the browser to the consent screen |
+| `GET /v1/oauth/consent` | none | the registered name, redirect host and decline address for a request |
+| `POST /v1/oauth/consent` | user | the account holder approves; the only place a code is made |
+| `POST /v1/oauth/token` | none | exchange the code and its PKCE verifier for a token |
+| `GET /.well-known/oauth-authorization-server` | none | RFC 8414 metadata |
+
+`/v1/oauth/*` uses the strict rate limit (10 a minute per IP).
+
+## The flow
+
+A client needs nothing but the address. Everything else it discovers.
+
+<Steps>
+  <Step title="Discover">
+    An unauthenticated `POST /mcp` answers `401` with a `WWW-Authenticate`
+    challenge carrying `resource_metadata`. The client fetches that document,
+    finds the authorization server, and fetches its metadata.
+  </Step>
+  <Step title="Register">
+    `POST /v1/oauth/register` with a `client_name` and `redirect_uris`. Public
+    clients only — no `client_secret` is issued, because an MCP client cannot
+    keep one. Registration is open by design, as RFC 7591 intends.
+  </Step>
+  <Step title="Authorize">
+    Send the browser to `/v1/oauth/authorize` with `response_type=code`,
+    `code_challenge`, `code_challenge_method=S256`, the registered
+    `redirect_uri`, `state`, `scope=read` and `resource`. The relayer checks the
+    request and redirects to the app's consent screen.
+  </Step>
+  <Step title="Consent">
+    The account holder approves in the app. **This is the only place a code is
+    made**, so a code cannot exist without a person having seen what they
+    approved. The browser is sent back to the registered `redirect_uri` with the
+    code and the `state`.
+  </Step>
+  <Step title="Exchange">
+    `POST /v1/oauth/token` with the code, `code_verifier` and `client_id`. The
+    answer is a read-scoped bearer token.
+  </Step>
+</Steps>
+
+### What is enforced
+
+- **PKCE is required**, `S256` only. `plain` is refused.
+- **An invalid authorize request is refused, never redirected** — including a
+  `redirect_uri` the client did not register. Bouncing a browser onward from a
+  request we have just called invalid is an open redirector, and an open
+  redirector on an authorization endpoint is how codes get stolen.
+- **A `redirect_uri` must be** https with a host, a loopback `http` address (any
+  port, as RFC 8252 requires for native apps), or a private-use scheme in
+  reverse-DNS form such as `com.example.app:/cb`. `javascript:`, `data:`,
+  `file:` and friends are refused.
+- **Codes are stored as a sha256, live 60 seconds, and are single use.** A code
+  presented twice is treated as evidence it leaked: the grant is refused *and*
+  the token the first exchange bought is revoked (RFC 6749 §4.1.2).
+- **`resource` (RFC 8707) is written into the token's audience**, and the MCP
+  server refuses a token issued for another resource or for none.
+
+### Errors
+
+Refusals carry `error` and `error_description` (RFC 6749 §5.2) in the
+[error envelope](/v3/api/overview), with `message` repeating the description:
+
+```json
+{
+  "error": "invalid_request",
+  "message": "PKCE is required: send code_challenge with code_challenge_method=S256",
+  "error_description": "PKCE is required: send code_challenge with code_challenge_method=S256",
+  "statusCode": 400,
+  "timestamp": "2026-11-02T06:27:37.263Z"
+}
+```
+
+## Tokens
+
+| | |
+| --- | --- |
+| Scope | `read` — the relayer refuses it on every route not marked read-safe |
+| Lifetime | 30 days for an OAuth grant; one hour for one issued from the command line |
+| Refresh | none. A read token that could rotate would come back with the rotating kind's scope, which is full authority, so the path does not exist |
+| Revocation | immediate. The token's row is read on every request, so removing access stops it on the next one |
+| Limit | 20 live tokens per account. Approving the same client again replaces its token rather than adding one |
+
+A **full-authority** token is refused at `POST /mcp` on purpose. The hosted
+server takes read-only tokens and nothing else.
+
+## Tools
+
+Eight, all read-only.
+
+| Tool | What it returns |
+| --- | --- |
+| `pb_check_state` | correlates wallets, pods, ads, slots and open trades, and reports only what does not agree |
+| `pb_whoami` | the linked wallets and the smart accounts the account controls |
+| `pb_list_pods` | every pod, with status |
+| `pb_get_pod` | one pod: health, gas, key, coverage, owner wallets |
+| `pb_list_ads` | the ads across the wallet and the agent accounts |
+| `pb_get_ad` | one ad, including the payout address it is fixed to |
+| `pb_get_trade` | a trade and its order params: pinned slot, key, recipient |
+| `pb_get_keys` | the settlement keys and the live registry slots, with holders |
+
+A ninth, `pb_prepare_retirement`, builds the message for a key retirement and
+submits nothing. It is behind `PROOFBRIDGE_ALLOW_PREPARE` and the hosted server
+does not offer it; it exists for anyone running their own copy.
+
+## How it is built
+
+Worth knowing if you are reviewing it, or running your own.
+
+**It holds no credential.** Each request carries the caller's own token, used for
+that request only. There is no secret in the image, no volume, nothing to back up
+or restore. One process serves many callers without sharing anything between
+them.
+
+**It verifies by asking the relayer** (`GET /v1/auth/introspect`) rather than
+holding the signing secret. A process that can verify a token can also mint one,
+which is a far worse thing to have on an internet-facing box. It also means a
+revoked token stops working here the moment it stops working there, with no cache
+to go stale.
+
+**A tool cannot choose a URL, a method or a token.** Every request is built from
+a fixed route table, from arguments validated by shape, and the finished path
+must still match an allowlist — path traversal is unrepresentable rather than
+filtered. Every call is a `GET`. The token is never readable from a tool
+argument, a tool result or an error message.
+
+**Counterparty text is fenced.** Ad titles, pod labels and cancel reasons reach
+the model wrapped in `«»` with control characters stripped, so an instruction
+hidden inside one is visibly not the tool's own words.
+
+**`MCP_ALLOWED_HOSTS` checks the `Host` and `Origin` headers**, which is what
+blocks DNS rebinding.
