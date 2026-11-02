@@ -3,8 +3,6 @@ title: "Connect a tool"
 description: "Let Claude or another MCP client read your ProofBridge account, and take that access away again"
 ---
 
-import Screenshot from "/snippets/screenshot.mdx";
-
 ProofBridge runs an [MCP](https://modelcontextprotocol.io) server. Connect it to
 Claude, or to any MCP client, and you can ask about your account in plain
 language instead of reading four screens and comparing them yourself.
@@ -46,7 +44,9 @@ You need to be signed in to ProofBridge in a browser on the same machine.
 
     Click **Allow read-only access**.
 
-    <Screenshot caption="The consent screen: what the tool will be able to read, and where it sends you back" />
+    <Frame caption="The consent screen: the name it registered with, the address it sends you back to, and what it will be able to read">
+      <img src="/images/v3/mcp-01-consent.png" alt="The ProofBridge consent screen headed 'Allow Claude Desktop to read your account?', saying it registered as Claude Desktop and will send you to 127.0.0.1:33418, with five ticked read permissions, a line reading 'It can't create, change or move anything', and Allow read-only access and Decline buttons" />
+    </Frame>
   </Step>
   <Step title="Ask it something">
     The client comes back connected. Try *"check the state of my ProofBridge
@@ -95,7 +95,9 @@ limits live on the chain rather than in a promise an app makes.
 Go to **My Agents → your agent → MCP**. The **What has access** section lists
 every application you have approved and when each last read anything.
 
-<Screenshot caption="What has access: each connected application, when it last read, and Remove" />
+<Frame caption="The MCP tab: the address to connect with, and every application that has access">
+  <img src="/images/v3/mcp-02-tab.png" alt="The MCP tab on an agent page, showing what a connected tool can do beside a greyed Coming soon column, the claude mcp add command with a copy button, a collapsed list of 8 tools, and a What has access section listing one connected app with its expiry, last use and a Remove button" />
+</Frame>
 
 **Remove** stops it at once. There is no delay and nothing cached — the server
 checks with ProofBridge on every single request, so a removed application stops
