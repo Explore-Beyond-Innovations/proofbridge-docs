@@ -95,7 +95,38 @@ The setup page follows your pod through each step and updates on its own.
 
 ## Removing a pod
 
-**Delete pod** stops and removes it; its data goes. Its key stays
-registered until you retire it. To end both at once, use **Kill Agent →
-Retire the pod**: the key is retired on every chain, then the pod is
-deleted.
+The agent page has three ways out:
+
+- **Stop the pod** deletes the pod. It stops signing and its data goes.
+  Its key stays registered until you retire it.
+- **Retire the key** stops the pod's key on every chain.
+- **Kill Agent** does both: the key is retired on every chain (one wallet
+  signature), then the pod is deleted.
+
+Before you confirm, the sheet counts the open trades on the pod's key:
+
+| Row | What happens to those trades |
+| --- | --- |
+| **You take over after** | the pod locked them but hasn't co-signed; you move each one to your own key from its trade page |
+| **Finish as they are** | the pod already co-signed; each completes when the Bridger signs |
+| **End through cancel** | claimed or disputed already; each ends at its deadline |
+
+## Take over a deleted pod's trades
+
+Once the pod is deleted, each trade it locked but hadn't co-signed shows
+a take-over panel on its trade page: "Your pod was deleted before it
+co-signed this trade."
+
+1. Click **Take over**. Your wallet signs once; the relayer pays the gas
+   for both chain calls.
+2. The order moves from the pod's key to your own settlement key on the
+   ad chain. The Bridger is asked to sign again once it lands.
+3. When the page says the trade is on your settlement key, co-sign it as
+   usual.
+
+The panel shows the last moment you can take it over. If your settlement
+account has no key of its own live on both chains, click **Register a
+key** first. If the try fails, click **Try again**. If the last moment
+passes, the trade ends through the cancel path at its deadline. See
+[Take over a deleted pod's trades](/v3/api/trades#take-over-a-deleted-pods-trades)
+for the API.

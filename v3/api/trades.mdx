@@ -21,6 +21,10 @@ relayer never moves funds. Settlement, the step after the lock, is on [Settlemen
 | `POST /v1/trades/:id/lock` | user | The maker's `lockForOrder` call |
 | `POST /v1/trades/:id/half` | user | Send your half of the trade secret |
 | `POST /v1/trades/:id/confirm` | user | Report that the deposit or the lock landed |
+| `GET /v1/trades/pod-pinned` | user | Your open trades pinned to a deleted pod's key |
+| `GET /v1/trades/:id/repin` | user | Whether a trade can be taken over now, and the latest try |
+| `POST /v1/trades/:id/repin/prepare` | user | The message to sign to take a trade over |
+| `POST /v1/trades/:id/repin` | user | File the signed take-over |
 
 ## The flow
 
@@ -553,3 +557,163 @@ The chain decides, not the body: the relayer reads the escrow's order status at 
 | `404` | `Trade update log not found` | Nothing pending: already confirmed, or replaced by a newer lock quote |
 | `409` | `Trade is cancelled (<cancelReason>); a landed action does not revive it` | The trade was cancelled for a reason other than an expired or replaced reservation |
 | `503` | `The account's owner could not be read from the chain — retry` | |
+
+## Take over a deleted pod's trades
+
+A [hosted pod](/v3/guides/hosted-pods) co-signs with its own key, so each trade it locked is pinned to
+the pod's key on the ad chain. If the pod is deleted (or its request declined) before it co-signs a
+locked trade, nothing can co-sign that trade under its pin. Taking it over moves the pin to your own
+settlement key, so you co-sign it yourself.
+
+- **Who can.** The owner of the trade's settlement account: the caller must have that account among
+  their linked wallets and accounts. Anyone else gets `403`
+  `only the trade's settlement account can take it over`.
+- **Which trades.** A `LOCKED` trade pinned to the key of a pod that is deleted or declined, that the
+  pod had not co-signed yet, while the ad chain still accepts the move.
+- **What you sign.** One `RepinOrder` per trade, with your settlement account's wallet: EIP-712 typed
+  data for an EVM account, SEP-53 text for a Stellar one. It names the order, the pod's slot, your
+  slot and the pair nonce.
+- **What the relayer pays for.** It sends both chain calls from its own account, on the ad chain:
+  `approveRepin` on the key registry, then `repinOrder` on the `AdManager`.
+- **What happens next.** Once the move lands, the co-signatures made under the pod's key are dropped,
+  and both parties sign again. The ad chain then treats the order as one whose co-signed payout was
+  blocked, so a cancel or dispute on it waits the extra evidence time (see
+  [When a payout was blocked](/v3/concepts/deadlines-and-clocks#when-a-payout-was-blocked)).
+
+### Your trades on a pod's key
+
+`GET /v1/trades/pod-pinned` lists your `LOCKED`, `CLAIMED` and `DISPUTED` trades pinned to the key of
+any of your deleted or declined pods. With `?podId=` it lists those of one pod you own, whatever its
+status, which is what the delete screen reads. A `podId` that is not a pod you own is `404`. It reads
+only the relayer's records; ask `GET /v1/trades/:id/repin` for the chain's answer.
+
+```json
+{
+  "trades": [
+    {
+      "tradeId": "7c1e2d3a-5b4f-4e6a-9d8c-1f2e3a4b5c6d",
+      "status": "LOCKED",
+      "orderHash": "0x2f4e…1f3e",
+      "deadline": "1791158400",           // unix seconds
+      "podId": "c3d4e5f6-…",
+      "podLabel": "night-shift",
+      "standing": "take-over"
+    }
+  ]
+}
+```
+
+| `standing` | Meaning |
+| --- | --- |
+| `take-over` | You can move it to your own key once the pod is gone |
+| `maker-signed` | The pod already co-signed; it completes when the bridger signs |
+| `not-open` | Claimed or disputed; it ends through the cancel or dispute path |
+| `identity-is-pod` | The settlement account is the pod's own, so nobody can sign for it; it ends through the cancel path |
+
+### Can it be taken over now
+
+`GET /v1/trades/:id/repin` reads the chain and returns whether the trade can be taken over now, and
+your latest try. If a try stopped part-way (a relayer restart, say), this read picks it up again.
+
+```json
+{
+  "eligible": true,
+  "fromSlot": 2,                    // the pinned slot: the pod's key
+  "toSlot": 0,                      // your slot
+  "repinUntil": "1791157200",       // the last second the chain accepts the move
+  "filing": null
+}
+```
+
+When `eligible` is `false`, `reason` holds one of the codes below and `message` explains it.
+`filing` is your latest try, or `null`:
+
+```json
+{
+  "id": "e1f2a3b4-…",
+  "status": "APPROVED",             // PENDING | APPROVED | CONFIRMED | FAILED
+  "fromSlot": 2,
+  "toSlot": 0,
+  "nonce": "1",
+  "approveTxHash": "0x6a1f…92c0",   // once approveRepin landed
+  "error": null,
+  "attempts": 1,
+  "createdAt": "2026-10-04T10:00:00.000Z",
+  "updatedAt": "2026-10-04T10:00:40.000Z"
+}
+```
+
+| `filing.status` | Meaning |
+| --- | --- |
+| `PENDING` | Recorded; `approveRepin` is being sent |
+| `APPROVED` | `approveRepin` landed; `repinOrder` is being sent |
+| `CONFIRMED` | The trade is on your key |
+| `FAILED` | The try failed; `error` says why. A try that stalls is failed after about 10 minutes. Prepare and file again |
+
+### Prepare and file
+
+`POST /v1/trades/:id/repin/prepare` takes no body and returns the message to sign:
+
+```json
+{
+  "account": "0x3b9f…7e8",          // your settlement account
+  "account32": "0x0000…07e8",
+  "scheme": "secp256k1",            // secp256k1 | sep53
+  "env": "testnet",
+  "chainId": "11155111",            // the ad chain
+  "registry": "0x0000…4a1b",
+  "orderHash": "0x2f4e…1f3e",
+  "fromSlot": 2,
+  "toSlot": 0,
+  "nonce": "1",                     // the (account, order) pair's nonce
+  "repinUntil": "1791157200",
+  "signPayload": { "kind": "eip712", "typedData": { "…": "…" } }  // or { "kind": "sep53", "text": "…" }
+}
+```
+
+Sign `signPayload` with the settlement account's wallet, then send `POST /v1/trades/:id/repin`:
+
+```json
+{
+  "fromSlot": 2,
+  "toSlot": 0,
+  "nonce": "1",                     // as prepare served it
+  "ownerAuth": { "scheme": "secp256k1", "sig": "0x…" }  // 65-byte r||s||v, or the 64-byte ed25519 signature for sep53
+}
+```
+
+The relayer checks the signature against what prepare would serve now, records the try and answers
+`{ "filing": { … } }` in the shape above. It then sends the two calls. Poll
+`GET /v1/trades/:id/repin` until `filing.status` is `CONFIRMED` or `FAILED`.
+
+### Take-over refusals
+
+Both `prepare` and the filing refuse with these `409` codes. `GET /v1/trades/:id/repin` reports the
+same ones as `reason`.
+
+| Code | Meaning |
+| --- | --- |
+| `not-locked` | Only a `LOCKED` trade can be taken over. A claimed or disputed one ends through the cancel or dispute path |
+| `not-pod-pin` | The trade is not pinned to a pod's settlement key |
+| `pod-serving` | The pod has not been deleted, so it co-signs the trade itself |
+| `maker-signed` | The pod already co-signed; the trade completes when the bridger signs |
+| `not-open` | The ad chain no longer shows the order open |
+| `repin-closed` | The chain's last moment to move the key has passed; the trade ends through the cancel path |
+| `owner-has-no-key` | Your settlement account has no key of its own live on both chains for this order. Register or rotate one, then take it over |
+
+The filing adds these:
+
+| Code | Meaning |
+| --- | --- |
+| `repin-stale` | The pin, your slot or the pair nonce moved since you prepared. Prepare again and sign the new message |
+| `repin-in-flight` | This take-over is already being filed. Read `GET /v1/trades/:id/repin` |
+| `repin-landed` | This take-over already landed; the trade is on your key |
+| `repin-failed` | This take-over failed 5 times; the message says the last reason |
+
+| Status | Error | When |
+| --- | --- | --- |
+| `400` | `this account signs <scheme>, not <scheme>` | `ownerAuth.scheme` is the wrong scheme for the account |
+| `400` | `the owner signature does not verify for this take-over` | |
+| `403` | `only the trade's settlement account can take it over` | |
+| `404` | `Trade not found` | |
+| `503` | `… could not be read … retry shortly` | A key registry or the ad chain could not be read |
