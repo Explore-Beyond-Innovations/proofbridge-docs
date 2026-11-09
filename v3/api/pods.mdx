@@ -3,9 +3,9 @@ title: "Pods"
 description: "Request a hosted agent pod, follow it through approval and setup, take it live, and read its logs"
 ---
 
-A pod is a hosted copy of your agent that co-signs and locks trades for one of your ads. These endpoints take a pod
-from request to live: you request it, follow it through approval, choose the ad it serves, register its key, file its
-retirements, and go live. See [Agents](/v3/concepts/agents) for what an agent may do.
+A pod is a hosted copy of your agent that co-signs and locks trades for your ads. One pod can serve up to 16 ads that
+share a chain, an agent account and a settlement signer. These endpoints take a pod from request to live: you request
+it, follow it through approval, choose the ads it serves, register its key, file its retirements, and go live. See [Agents](/v3/concepts/agents) for what an agent may do.
 
 <Note>
 A pod request needs a ProofBridge operator's approval before anything runs. Only makers may request a pod: you need at
@@ -18,15 +18,19 @@ Each maker may have up to 2 pods by default, counting every pod that is not reje
 | Endpoint | Auth | Purpose |
 | --- | --- | --- |
 | `POST /v1/pods` | user | request a pod, or try again after a failed start |
+| `POST /v1/pods/rpc-check` | user | check RPC endpoints before you send them |
 | `GET /v1/pods` | user | list your pods |
 | `GET /v1/pods/capacity` | user | room on the pod server, and whether you may request |
 | `GET /v1/pods/:id` | user | one pod's status and next step |
 | `GET /v1/pods/:id/eligible-ads` | user | the ads this pod can serve |
 | `GET /v1/pods/:id/registration` | user | the pod's key registration, ready for you to sign |
 | `POST /v1/pods/:id/registration/rotate` | user | ask the pod for a new key |
-| `POST /v1/pods/:id/ad` | user | choose the ad the pod serves |
+| `POST /v1/pods/:id/ad` | user | make one ad the pod's only ad |
+| `POST /v1/pods/:id/ads` | user | add an ad to the pod |
+| `DELETE /v1/pods/:id/ads/:adId` | user | take an ad out of the pod |
 | `PATCH /v1/pods/:id/rpc` | user | update the pod's RPC endpoints |
 | `POST /v1/pods/:id/go-live` | user | take the pod out of dry run |
+| `POST /v1/pods/:id/gas-withdrawal` | user | send the gas left in the pod's accounts back to your wallets |
 | `DELETE /v1/pods/:id` | user | delete the pod |
 | `GET /v1/pods/:id/logs` | user | stream the pod's logs (server-sent events) |
 
@@ -61,9 +65,9 @@ A pod has a `status`, where it is in its life, and a `nextStep`, what you should
 | `waitlisted` | show `waitlistPosition`; keep polling |
 | `wait` | the pod is starting, or a check is still running; keep polling |
 | `set-rpc` | add both RPC endpoints with `PATCH /v1/pods/:id/rpc`; the pod cannot start without them |
-| `choose-ad` | pick an ad from `GET /v1/pods/:id/eligible-ads` and send it to `POST /v1/pods/:id/ad` |
-| `no-custody` | the chosen Stellar ad's address is a plain wallet, not an agent account; choose an ad made from your agent account |
-| `set-policy` | the agent account holds no live policy for the pod's key (none, expired, or naming another signer); sign one from your wallet, on chain |
+| `choose-ad` | pick an ad from `GET /v1/pods/:id/eligible-ads` and send it to `POST /v1/pods/:id/ad` or `POST /v1/pods/:id/ads` |
+| `no-custody` | the pod's ad is a plain wallet's, not an [agent account](/v3/api/accounts)'s, so the chain would refuse the pod's locks; move the ad to your agent account, or choose one made from it. This applies on Stellar and on an EVM chain where the agent module is set up |
+| `set-policy` | the agent account holds no live policy for the pod's key (none, expired, or naming another signer), or the live policy leaves out one of the pod's ads (`adsNotInPolicy`); sign one from your wallet, on chain |
 | `agent-revoked` | the agent account revoked the pod's key for good; delete the pod and request a new one |
 | `register-key` | register the pod's key: [see below](#register-the-pods-key) |
 | `awaiting-binding` | the registration is in flight; keep polling |
@@ -117,8 +121,17 @@ computed on read from `identity-ready`.
   "nextStep": "register-key",
   "error": null,                  // failed: why
   "decisionReason": null,         // rejected or deleted: why
+  "contact": null,                // failed: the approved contact, for Try again (your own session only)
+  "updatedAt": "2026-09-28T00:10:00.000Z",  // ISO 8601: when the pod last changed
+  "startLate": false,             // true: a starting pod has been quiet longer than expected
   "waitlistPosition": null,       // from 1, only while waitlisted
-  "adId": "6d1e8a20-4b7c-4f3a-a1d2-9c0b7e5f3a18",  // the chosen ad
+  "adId": "6d1e8a20-4b7c-4f3a-a1d2-9c0b7e5f3a18",  // the pod's first ad
+  "adIds": ["6d1e8a20-4b7c-4f3a-a1d2-9c0b7e5f3a18"],  // every ad the pod serves, oldest first
+  "openTradeAdIds": [],           // ads outside the pod with an open trade the pod still settles
+  "adsNotInPolicy": [],           // the pod's ads the live policy doesn't name yet; null while unreadable
+  "adsOnlyInPolicy": [],          // ads the policy names that the pod no longer serves; null while unreadable
+  "policyEveryAd": false,         // the policy names every ad of the account; null while unreadable
+  "custodyAd": true,              // setup will ask for an agent policy; null with no ad or a failed read
   "manifest": {
     "plan": "pilot",
     "channel": "production",
@@ -142,7 +155,11 @@ computed on read from `identity-ready`.
     "lastStellarRead": 1790000058,
     "lastCosign": null,
     "keyVolume": true,
-    "uptimeS": 620
+    "uptimeS": 620,
+    "features": ["gas-withdrawal"], // what the pod's runtime said it can do
+    "owners": [                   // the owner wallets the pod's configuration names
+      { "account": "0x0000…beddc4", "keyCommitment": "0xe5e5…e5" }
+    ]
   },
   "coverage": { "scanned": true, "gaps": [ { "chainId": "1000002", "slotId": 0, "detail": "…" } ] },
   "agentKey": {                   // null until the pod posts its registration request
@@ -156,7 +173,8 @@ computed on read from `identity-ready`.
              "suggested": "0.05", "symbol": "ETH", "level": "top-up-soon", "readAt": 1790000060 },
     "stellar": { "address": "GBRP…OX2H", "balance": "0", "minimum": "5", "suggested": "20",
                  "symbol": "XLM", "level": "missing", "readAt": 1790000060 }
-  }
+  },
+  "gasWithdrawal": null           // the latest gas withdrawal you asked for; see below
 }
 ```
 
@@ -164,6 +182,10 @@ computed on read from `identity-ready`.
   failed; `balance` is null). Balances are in whole coins and cached for 30 seconds; add `?fresh=1` right after a
   top-up. Send an EVM top-up on `gas.evm.chainId`.
 - `coverage` is null before the pod reports and while the check cannot run. `scanned: false` means it has not run yet.
+- `adsNotInPolicy`, `adsOnlyInPolicy` and `policyEveryAd` compare the pod's ads with the agent account's live policy.
+  When `adsNotInPolicy` is not empty, re-sign the policy with those ads.
+- `openTradeAdIds` lists ads you took out of the pod that still have open trades on its key. The pod keeps settling
+  them.
 
 ## Request a pod
 
@@ -211,7 +233,7 @@ redeployed with the same `id` and no new review, and the answer is `status: "pro
 | `400` | `rpc-shared-key` | two endpoints share one provider key; `fields` names them |
 | `400` | `rpc-same-provider` | both endpoints for a chain use the same provider |
 | `400` | `invalid-label`, `invalid-contact` | bad label or contact |
-| `400` | `manifest-invalid` | the configuration did not validate; `issues` lists why |
+| `500` | `manifest-invalid` | the relayer could not prepare the request; a fault on ProofBridge's side, not in what you sent. Try again later |
 | `400` | `plane-refused` | the pod host refused the configuration |
 | `403` | `maker-required` | you have no `ACTIVE`, `PAUSED` or `EXHAUSTED` ad |
 | `409` | `pod-exists` | you already have a pod with this label |
@@ -222,6 +244,32 @@ redeployed with the same `id` and no new review, and the answer is `status: "pro
 | `503` | `plane-busy` | the pod host is busy; try again in a minute |
 | `503` | `requests-paused` | the review queue is full; try again later |
 | `503` | `pods-not-configured` | pod hosting is not set up on this relayer |
+
+## Check endpoints
+
+`POST /v1/pods/rpc-check` asks the relayer to try your endpoints before you send them. It takes any of `evmUrl`,
+`evmUrl2`, `stellarUrl` and `stellarUrl2` and answers one result per endpoint sent. It is advice only: a request is
+never refused because of it. This route has a strict per-IP rate limit.
+
+```json
+{
+  "results": [
+    { "field": "evmUrl", "status": "ok", "message": "This endpoint answered on the right network." },
+    { "field": "stellarUrl", "status": "wrong-network", "message": "This endpoint answered, but on a different network from the one ProofBridge uses here." }
+  ]
+}
+```
+
+| `status` | Meaning |
+| --- | --- |
+| `ok` | it answered on the network ProofBridge uses here |
+| `wrong-network` | it answered, on another network |
+| `unreachable` | it did not answer |
+| `refused` | not checked: it must be an `https` hostname on the public internet |
+
+| Status | Error | When |
+| --- | --- | --- |
+| `503` | `rpc-check-busy` | too many checks are running; try again shortly, or carry on without one |
 
 ## List and capacity
 
@@ -254,7 +302,7 @@ cannot be reached, this answers `502 plane-unavailable` or `503 plane-busy`.
 `GET /v1/pods/:id` returns [the pod object](#the-pod-object). Poll it to follow the pod; render your call to action
 from `nextStep`.
 
-## Choose the ad
+## Choose the ads
 
 `GET /v1/pods/:id/eligible-ads` lists your ads the pod can serve: `ACTIVE`, `PAUSED` or `EXHAUSTED`, oldest first.
 
@@ -269,22 +317,39 @@ from `nextStep`.
       "creatorKind": "WALLET",       // "WALLET" | "STELLAR_AGENT_ACCOUNT" | "EVM_CUSTODY_ACCOUNT"
       "settlementSigner": "0x5b38da6a701c568545dcfcb03fcb875f56beddc4",  // the account the pod's key registers under
       "status": "ACTIVE",
-      "chosen": true                 // the pod serves this ad now
+      "chosen": true,                // the pod serves this ad now (the same as inPod)
+      "inPod": true,
+      "notGroupable": null           // why it can't join the pod's ads; null when it can
     }
   ]
 }
 ```
 
-`POST /v1/pods/:id/ad` chooses one. Choosing another ad later drops the pod's binding to the previous one. You can
-choose before the pod has started.
+A pod's ads share one chain, one agent account, one settlement signer, one ad token and one order token, so one policy
+covers them all. `notGroupable` names the first that differs: `chain`, `account`, `signer`, `token` or `orderToken`,
+or `full` when the pod already serves 16 ads.
+
+All three routes take `{ "adId": "…" }` or the ad in the path, and answer the pod object.
+
+- `POST /v1/pods/:id/ad` makes this ad the pod's only ad. The pod's binding to its previous ads goes. You can choose
+  before the pod has started.
+- `POST /v1/pods/:id/ads` adds an ad to the ones the pod serves. The first ad sets the group. Adding an ad the pod
+  already serves changes nothing.
+- `DELETE /v1/pods/:id/ads/:adId` takes an ad out. The last ad out removes the pod's policy binding.
 
 ```json
 { "adId": "6d1e8a20-4b7c-4f3a-a1d2-9c0b7e5f3a18" }
 ```
 
+The binding is how the pod finds its trades, including trades you ran by hand on the same account. So a change that
+drops the binding is refused while any of them is open (`INACTIVE`, `ACTIVE` or `LOCKED`).
+
 | Status | Error | When |
 | --- | --- | --- |
 | `400` | `ad-not-eligible` | not one of your eligible ads, or its settlement signer is the pod's own address |
+| `400` | `ad-not-groupable` | add only: the ad differs from the pod's ads; `field` names what differs |
+| `409` | `pod-ads-full` | add only: the pod already serves 16 ads; `max` says the cap |
+| `409` | `pod-ad-open-trades` | the change would drop the pod's binding while trades on the account are open; `open` counts them. Try again once they end |
 | `409` | `pod-closed` | the pod was deleted or declined |
 | `409` | `pod-changed` | reload and retry |
 
@@ -376,7 +441,8 @@ per-user rate limit.
 
 | Status | Error | When |
 | --- | --- | --- |
-| `400` | the `rpc-*` codes, `manifest-invalid` | as on request |
+| `400` | the `rpc-*` codes | as on request |
+| `500` | `manifest-invalid` | as on request |
 | `409` | `awaiting-approval` | the request is under review; change the endpoints once it is running |
 | `409` | `live-needs-rpc` | a live pod needs both endpoints; `chains` names the missing ones |
 | `409` | `pod-closed`, `pod-changed` | as above |
@@ -399,7 +465,55 @@ pre-signed retirement on file. Then the pod leaves dry run. Calling it on a live
 | `409` | `coverage-unscanned` | the retirement check has not run yet; wait a few minutes |
 | `409` | `coverage-gap` | retirements are missing; `chainIds` names the chains |
 | `409` | `pod-changed` | reload and retry |
+| `500` | `manifest-invalid` | as on request |
 | `400` / `502` / `503` | `plane-refused`, `plane-unavailable`, `plane-busy` | the pod host refused or could not be reached |
+
+## Withdraw the pod's gas
+
+`POST /v1/pods/:id/gas-withdrawal` asks the pod to send the gas left in its operational accounts back to you. One of
+the owner wallets the pod reported in `heartbeat.owners` signs a `WithdrawPodGas` message: EIP-712 typed data in the
+"ProofBridge Keys" domain, or SEP-53 text for a Stellar owner, the same owner auth as a key registration. Build it with
+`withdrawPodGasTypedData` or `withdrawPodGasText` from `@proofbridge/bls-encodings`. The relayer checks the signature
+and passes the request to the pod on its next heartbeat. The pod checks it again before it sends. This route has a
+strict per-user rate limit.
+
+```json
+{
+  "account": "0x0000…beddc4",       // one of heartbeat.owners[].account
+  "evmTo": "0x5b38…ddc4",           // where the ETH goes; all zero leaves it
+  "stellarTo": "0x9a8b…6778",       // the G… account's 32-byte key; all zero leaves it
+  "nonce": "1",                     // the pod carries out each nonce at most once
+  "deadline": "1790003600",         // unix seconds, at most 24 hours ahead
+  "scheme": "secp256k1",            // secp256k1 | sep53
+  "signature": "0x…"                // 65-byte r||s||v, or the 64-byte ed25519 signature
+}
+```
+
+The answer, also on the pod object as `gasWithdrawal`, follows the request:
+
+```json
+{
+  "status": "PENDING",              // PENDING | DONE | FAILED | EXPIRED
+  "evmTo": "0x5b38…ddc4",
+  "stellarTo": "0x9a8b…6778",
+  "deadline": "2026-09-28T01:00:00.000Z",
+  "createdAt": "2026-09-28T00:00:00.000Z",
+  "reportedAt": null,               // when the pod reported back
+  "evmTxHash": null,
+  "evmError": null,
+  "stellarTxHash": null,
+  "stellarError": null
+}
+```
+
+The pod checks in every minute and sends then. Only a pod whose `heartbeat.features` lists `gas-withdrawal` can carry
+it out.
+
+| Status | Error | When |
+| --- | --- | --- |
+| `409` | `withdrawal-not-ready` | the pod's configuration names no owner wallet yet; ProofBridge's operators add it |
+| `400` | `withdrawal-invalid` | the wallet is not one of the pod's owners, no chain has a destination, the deadline has passed or is more than 24 hours away, or the signature is not from that owner |
+| `409` | `withdrawal-pending` | a withdrawal is already waiting, or this nonce was used |
 
 ## Delete
 
@@ -410,7 +524,10 @@ already deleted pod answers the same body, with `status: "deleted"`. Confirm wit
 | Status | Error | When |
 | --- | --- | --- |
 | `409` | `pod-changed` | another action holds the pod; retry |
-| `502` / `503` | `plane-unavailable`, `plane-busy` | nothing changed; try again |
+| `400` / `502` / `503` | `plane-refused`, `plane-unavailable`, `plane-busy` | the pod host refused or could not be reached; nothing changed, try again |
+
+A pod with open trades can always be deleted. Trades it locked but had not co-signed can be moved to your own key: see
+[Take over a deleted pod's trades](/v3/api/trades#take-over-a-deleted-pods-trades).
 
 ## Logs
 
