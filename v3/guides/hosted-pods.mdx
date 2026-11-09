@@ -9,7 +9,8 @@ A **hosted pod** is an agent that ProofBridge runs for you. Hosted pods
 run on infrastructure ProofBridge operates, and each request needs a
 ProofBridge operator's approval before anything runs. The pod creates its
 own agent key inside the pod; only the public half leaves it. The key is
-limited by the on-chain policy you set.
+limited by the on-chain policy you set. One pod can trade for several of
+your ads.
 
 You need an active ad to request a pod.
 
@@ -28,8 +29,10 @@ The setup page follows your pod through each step and updates on its own.
     the RPC endpoints. Choose whether the endpoints are **Kept with the
     pod** (stored encrypted, restored after a server loss) or **Held by
     you** (never stored; you re-enter them after a server loss). **Use
-    public endpoint** fills in a public one. No wallet signature is
-    needed.
+    public endpoint** fills in a public one. **Check endpoints** tries
+    each one from ProofBridge and says whether it answered on the right
+    network; it's advice only, so you can send the request either way.
+    No wallet signature is needed.
   </Step>
   <Step title="Under review">
     An operator reviews the request, usually within a day. If the pod
@@ -40,26 +43,28 @@ The setup page follows your pod through each step and updates on its own.
     Once approved, the pod starts. This takes a few minutes. If it fails
     to start, **Try again** redeploys the approved request.
   </Step>
-  <Step title="Choose an Ad">
-    Pick the ad the pod trades for and click **Assign this Ad**. The ad
-    must be held by your [agent account](/v3/guides/linked-accounts); if
-    it isn't, the page shows how to open the same ad from the account.
+  <Step title="Choose an ad">
+    Pick the ad the pod trades for and click **Assign this ad**. The ad
+    must be held by your [agent account](/v3/guides/linked-accounts). If
+    it's your wallet's, the page shows **Move this ad to your agent
+    account**: create the account if you need one, then move the ad. Its
+    free liquidity comes back to your wallet and the same ad opens from
+    your agent account, assigned to this pod.
   </Step>
-  <Step title="Set the Agent's Policy">
+  <Step title="Set the agent's policy">
     Set the most per order, the most per day, and how long it lasts. Your
     wallet writes the policy on your agent account.
   </Step>
-  <Step title="Approve Key Registration">
-    Sign once to register the pod's key under your ad's settlement
-    identity.
+  <Step title="Register the pod's key and its emergency stops">
+    Click **Approve key registration** and sign once to register the
+    pod's key under your ad's settlement identity. Then click **Sign the
+    pod's emergency stop**. ProofBridge keeps the stop and sends it,
+    without you online, if the pod is revoked from your agent account or
+    in an incident. If your own key is on the same wallet, sign one for it
+    too (**Sign your key's emergency stop**): when the stops are sent, your
+    own key on that wallet ends as well.
   </Step>
-  <Step title="Sign Emergency Stop">
-    Sign the pod key's emergency stop. ProofBridge keeps it and sends it,
-    without you online, if the pod is revoked from your agent account or in
-    an incident. If your own key is on the same wallet, sign one for it too:
-    when the stops are sent, your own key on that wallet ends as well.
-  </Step>
-  <Step title="Fund your agent">
+  <Step title="Fund your agent's gas">
     The pod pays the network fee for every lock from its own accounts on
     each chain. Top them up from the page; on Stellar, **Use Friendbot**
     creates and funds the account on testnet. See
@@ -67,8 +72,8 @@ The setup page follows your pod through each step and updates on its own.
     to get test ETH. ProofBridge emails your contact address if a balance
     runs low.
   </Step>
-  <Step title="Go Live">
-    When the pod, key, ad and emergency stop are ready, click **Go Live**.
+  <Step title="Go live">
+    When the pod, key, ad and emergency stop are ready, click **Go live**.
     The pod starts locking within its policy.
   </Step>
 </Steps>
@@ -86,6 +91,36 @@ The setup page follows your pod through each step and updates on its own.
 
 {/* SCREENSHOT: pod setup page, Ready to go live */}
 <Screenshot caption="Ready to go live" />
+
+ProofBridge also emails your contact address when the request is
+approved or declined, when the pod goes live, and if it fails to start.
+
+## Several ads on one pod
+
+A pod trades for up to 16 ads on one network, held by the same agent
+account, settled under the same wallet and locking the same token. They
+share the policy's limits. On the pod's **Overview** tab, the **Ads**
+list shows how many it holds. Choose one under **Add an ad** and click
+**Add ad**; an ad that can't join is greyed out. **Remove** takes one
+out.
+
+If the live policy doesn't cover an ad yet, the pod can't trade for it:
+the page says so and offers **Sign a new policy**. Taking out the last
+ad, or changing a pod's ads in a way that drops its policy link, waits
+until the open trades on that account have ended.
+
+## The Pod tag
+
+An ad a live pod trades for shows a **Pod** tag on the bridge page, on
+**My Ads** and on its orders. The pod signs for it without waiting for
+the maker.
+
+## Withdraw the pod's gas
+
+On the pod's **Machine** tab, **Withdraw gas** sends what's left in the
+pod's accounts back to your wallets. Choose where each chain's gas goes,
+sign once with the owner wallet, and the pod sends it when it next
+checks in, within a minute or two.
 
 ## Limits
 
