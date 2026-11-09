@@ -1,6 +1,6 @@
 ---
 title: "Accounts"
-description: "List your wallets, and link or unlink the agent accounts you own"
+description: "List your wallets, link or unlink the agent accounts you own, and set the email for updates"
 ---
 
 A maker can run ads from an agent account instead of the wallet they signed in with. Linking proves you control that
@@ -14,6 +14,11 @@ account: the relayer reads the account's owner on chain, and it must be your sig
 | `GET /v1/accounts` | user | your signed-in wallets and your linked accounts |
 | `POST /v1/accounts/link` | user | link an agent account whose on-chain owner is your wallet |
 | `DELETE /v1/accounts/:id` | user | unlink an account |
+| `GET /v1/user/me/updates-email` | user | the email saved for updates |
+| `PUT /v1/user/me/updates-email` | user | save or replace it |
+| `DELETE /v1/user/me/updates-email` | user | remove it; no more updates are sent |
+| `GET /v1/user/updates-email/stop?t=` | none | the stop page linked from each email |
+| `POST /v1/user/updates-email/stop?t=` | none | stop update emails (one-click) |
 
 ## Account kinds
 
@@ -116,3 +121,32 @@ unlinked: close its ads first.
 | `400` | `Validation failed (uuid is expected)` | `:id` is not a UUID |
 | `404` | `Account link not found` | no such link for you |
 | `409` | `This account still makes <n> open ad(s). Close them before unlinking it.` | the account has open ads |
+
+## Email updates
+
+You can save one email address for updates: an email when a trade needs you (a new order on your ad,
+a lock to claim, or a dispute) and an occasional reminder, at most once a week. In the app this is
+**Email updates** on the Accounts page. None of these routes accepts a read token.
+
+`PUT /v1/user/me/updates-email` saves or replaces it:
+
+```json
+{ "email": "tester@example.com" }   // trimmed and lowercased; at most 254 characters
+```
+
+`GET` and `PUT` answer `{ "email": "tester@example.com", "savedAt": "2026-10-04T09:00:00.000Z" }`,
+with both `null` when none is saved. `DELETE` answers `204`.
+
+| Status | Error | When |
+| --- | --- | --- |
+| `400` | `email must be an email address` | |
+| `401` | `Unauthorized` | no or bad access token |
+
+### The stop link
+
+Every email carries a stop link with a token, `?t=`, so you can stop them without signing in.
+`GET /v1/user/updates-email/stop` only shows a page with a **Stop these emails** button and changes nothing, so a
+mail filter that opens links stops nothing. `POST` to the same address, from that button or the
+email provider's one-click unsubscribe (RFC 8058), removes the address and answers
+`Done. You won't get any more ProofBridge updates at this address.` A token that is not valid any
+more answers `400`.

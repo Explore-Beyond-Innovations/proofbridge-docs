@@ -96,7 +96,7 @@ route's allowance.
 | strict | 10 per 60 s | the client IP, even with a valid token | every `/v1/auth/*` route except refresh, logout and `GET /v1/auth/introspect`, every `/v1/oauth/*` route, `POST /v1/trades/create`, `POST /v1/faucet/request`, `POST /v1/pods`, `POST /v1/pods/rpc-check`, the public settlement leg package, the cancel package, evidence file uploads |
 | strict per session | 10 per 60 s | the refresh token's session | `POST /v1/auth/refresh`, `POST /v1/auth/logout` |
 | strict per user | 10 per 60 s | the signed-in user | pod RPC updates, go-live and gas withdrawals |
-| hourly | 10 reports or 30 uploads per hour | the client IP | the [feedback](/v3/api/feedback) routes |
+| hourly | 10 reports or 30 uploads per hour | reports: the signed-in user, or the client IP. Uploads: the client IP | the [feedback](/v3/api/feedback) routes |
 | none | | | the health routes |
 
 Over the limit you get `429` with the message `ThrottlerException: Too Many Requests`, and the key

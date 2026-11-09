@@ -65,6 +65,7 @@ only its own half.
 | --- | --- |
 | `expired-reservation` | The deposit never landed and the 30-minute reservation expired |
 | `null` | A newer reservation by the same bridger on the same ad replaced this one |
+| `replaced-by-landed` | An earlier reservation's deposit landed after all, so this newer one, never paid, was cancelled |
 | `never-locked` | The maker never locked; the bridger was refunded |
 | `finalized` | The cancel window closed with no settlement |
 | `half-missing` | A leg's half of the trade secret never arrived, so the trade could not settle |
@@ -94,12 +95,14 @@ naming someone else's address returns nothing of theirs.
   "minAmount": "1000",                // order-token base units
   "maxAmount": "5000000",
   "status": "LOCKED,CLAIMED",         // one status or a comma-separated list
+  "order": "desc",                    // desc (newest first, the default) or asc (oldest first)
   "cursor": "…",
   "limit": 25                         // 1 to 100
 }
 ```
 
-A page can come back shorter than `limit`. Keep following `nextCursor` until it is `null`.
+A page can come back shorter than `limit`. Keep following `nextCursor` until it is `null`, with the
+same `order` on every page of one walk.
 
 ```json
 {
@@ -117,7 +120,7 @@ A page can come back shorter than `limit`. Keep following `nextCursor` until it 
       "deadline": "1791158400",             // unix seconds
       "createdAt": "2026-10-04T09:00:00.000Z",
       "updatedAt": "2026-10-04T09:04:10.000Z",
-      "ad": { "id": "6d1e8a20-…", "routeId": "2b7f4c1e-…", "creatorAddress": "0x3b9f…7e8" },
+      "ad": { "id": "6d1e8a20-…", "routeId": "2b7f4c1e-…", "creatorAddress": "0x3b9f…7e8", "servedByPod": false },
       "route": {
         "id": "2b7f4c1e-…",
         "adToken": { "id": "a1b2…", "symbol": "USDC", "chain": { "name": "Stellar Testnet", "chainId": "1000002", "kind": "STELLAR" }, "kind": "SAC", "address": "0x9a8b…6778", "decimals": 7 },
@@ -144,12 +147,15 @@ A page can come back shorter than `limit`. Keep following `nextCursor` until it 
 }
 ```
 
-Dispute fields are explained on [Disputes](/v3/api/disputes).
+Dispute fields are explained on [Disputes](/v3/api/disputes). `ad.servedByPod` is `true` when a
+live [hosted pod](/v3/api/pods) has the ad in its set. It does not promise a lock: the pod's policy
+may not name the ad yet.
 
 | Status | Error | When |
 | --- | --- | --- |
 | `400` | validation | A bad UUID, `limit` over 100, or an unknown status |
 | `400` | `Invalid address filter` | An address filter cannot be normalised |
+| `400` | validation | `order` is not `desc` or `asc` |
 | `401` | `Missing bearer token` | No access token |
 
 ## Trades your agent may act on
@@ -397,7 +403,8 @@ co-signing can start.
   "pinnedSlot": 0,                    // after the lock: the maker's key slot the lock pinned
   "adLegNullifier": "0x1c2b…1c2b",    // once both halves are on record
   "orderLegNullifier": "0x0e1d…0e1d",
-  "secretCustody": { "adLeg": "parties", "orderLeg": "parties" }
+  "secretCustody": { "adLeg": "parties", "orderLeg": "parties" },
+  "takeOver": { "fromCommitment": "0xeeee…ee", "toSlot": 3 }  // only after a take-over landed
 }
 ```
 
@@ -411,6 +418,10 @@ co-signing can start.
 - **`secretCustody`.** Per leg: `parties` (the owning party sent its half), `relayer` (the half was
   made under the earlier scheme, for older trades) or `pending` (none yet). The ad leg is the
   bridger's half, the order leg the maker's. See [Trade secrets](/v3/concepts/trade-secrets).
+- **`takeOver`.** Present once the settlement account
+  [took the trade over](#take-over-a-deleted-pods-trades) from a deleted pod's key. `fromCommitment`
+  is the pod's key and `toSlot` your slot. The order leg's half was the pod's, so the maker's
+  own-half check is skipped for it.
 
 Refusals are the same as for `/deposits`.
 
@@ -470,6 +481,7 @@ lock is held for 10 minutes; after that a new request quotes a fresh one.
 | `400` | `AdLock amount mismatch` | The hold does not match the order |
 | `409` | `mid-rotation` | The signer's newest key is live on one chain only; finish the rotation |
 | `409` | `no-pinnable-slot` | No key live on both chains outlives the order; register or rotate |
+| `409` | `owner-has-no-key` | The only co-signing key for this order is your pod's, and an order you lock yourself you co-sign yourself. Register a key of your own, or let the pod lock it |
 | `409` | `fee-changed` | The ad chain's fee split changed since the deposit. The trade cannot lock and is refunded after its deadline |
 | `400` | `half-nullifier-malformed`, `half-nullifier-not-a-field`, `half-key-malformed`, `half-key-unknown`, `half-ciphertext-malformed` | The half failed its checks. On `half-key-unknown`, fetch the key again and re-seal |
 | `409` | `half-conflict` | A different half is on record for the order leg; `nullifier` names it |
@@ -556,6 +568,7 @@ The chain decides, not the body: the relayer reads the escrow's order status at 
 | `403` | `Unauthorized` | Not a party |
 | `404` | `Trade update log not found` | Nothing pending: already confirmed, or replaced by a newer lock quote |
 | `409` | `Trade is cancelled (<cancelReason>); a landed action does not revive it` | The trade was cancelled for a reason other than an expired or replaced reservation |
+| `409` | `deposit-reviving` | The deposit landed just as the reservation expired. It is being restored and shows as active within a minute; send nothing again |
 | `503` | `The account's owner could not be read from the chain — retry` | |
 
 ## Take over a deleted pod's trades

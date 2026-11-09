@@ -1,6 +1,6 @@
 ---
 title: "Stats"
-description: "Network numbers, anchor freshness per route, and one account's track record"
+description: "Network numbers, anchor freshness per route, one account's track record, and your own dashboard numbers"
 ---
 
 These endpoints serve the numbers behind the public dashboard and the counterparty badge: how much
@@ -14,6 +14,7 @@ address has been. They hold counts and timings only.
 | `GET /v1/stats/network` | none | trade counts, volume, settlement and proving times, disputes over a range |
 | `GET /v1/stats/anchors` | none | per route, whether the newest root is anchored on the other chain |
 | `GET /v1/stats/accounts/:address` | user | one address's trades, completion rate and verified badge |
+| `GET /v1/stats/me` | user or read | your own dashboard numbers, across every wallet you hold |
 
 Each answer is cached for 60 seconds, so polling faster gains nothing.
 
@@ -152,4 +153,25 @@ matched as both the maker and the bridger of every trade.
 | Status | Error | When |
 | --- | --- | --- |
 | `400` | | `Invalid address` |
+| `401` | | no or bad access token |
+
+## Your numbers
+
+`GET /v1/stats/me`, with your access token or a read token. It counts across every wallet linked to
+your account and takes no address, so it can only describe you.
+
+```json
+{
+  "openAds": 3,             // your ads whose stored status is ACTIVE (an exhausted one counts)
+  "trades": 14,             // trades where you are the maker or the bridger and the deposit reached the chain
+  "completed": 7,           // of those, settled
+  "endedAfterLock": 2,      // of those, cancelled after the maker locked
+  "completionRate": 0.7778  // the same rule as the account track record; null until a trade has ended
+}
+```
+
+A trade with yourself on both sides counts once, as the maker.
+
+| Status | Error | When |
+| --- | --- | --- |
 | `401` | | no or bad access token |

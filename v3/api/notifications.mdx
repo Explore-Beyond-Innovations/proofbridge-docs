@@ -1,6 +1,6 @@
 ---
 title: "Notifications"
-description: "List and mark notifications, and receive them live over the notifications socket"
+description: "List and mark notifications, receive them live over the notifications socket, and as browser push"
 ---
 
 The relayer tells you when something happens on your trades, ads and agents: a new order on your ad, the maker's lock,
@@ -16,6 +16,13 @@ settlement progress. Stored notices are kept for 90 days.
 | `GET /v1/notifications/unread-count` | user | the unread count, for a badge |
 | `PATCH /v1/notifications/:id/read` | user | mark one notification read |
 | `POST /v1/notifications/read-all` | user | mark every notification read |
+| `GET /v1/notifications/push/key` | none | the push key, and whether push is on |
+| `PUT /v1/notifications/push/subscriptions` | user | save this device's push subscription |
+| `GET /v1/notifications/push/subscriptions` | user | your devices with push on |
+| `DELETE /v1/notifications/push/subscriptions` | user | remove one device |
+| `GET /v1/notifications/preferences` | user | which groups of notices are pushed |
+| `PUT /v1/notifications/preferences` | user | change which groups are pushed |
+| `POST /v1/notifications/:id/clicked` | user | a push was tapped: mark its notice read |
 
 A notice addressed to an address reaches the user who holds it as a signed-in wallet or a
 [linked account](/v3/api/accounts).
@@ -181,3 +188,55 @@ The push never carries key or leg detail. Read [`GET /v1/trades/:id/settlement`]
 The socket is a hint, not the record. Events can be missed while you are disconnected, so treat each push as a cue to
 refetch, and poll the HTTP routes for the truth.
 </Note>
+
+## Browser push
+
+The relayer can also send each notice as a Web Push to the devices you turn it on for, so it
+reaches you while the app is closed. In the app this is **Device notifications** on the Accounts
+page. None of these routes accepts a read token.
+
+1. `GET /v1/notifications/push/key` needs no sign-in. It answers
+   `{ "enabled": true, "publicKey": "BEl6…" }`, or `{ "enabled": false, "publicKey": null }` when the
+   relayer sends no pushes.
+2. Subscribe in the browser with `PushManager.subscribe`, passing `publicKey` as the
+   `applicationServerKey`.
+3. Send the subscription to `PUT /v1/notifications/push/subscriptions`. Saving the same endpoint
+   again updates it.
+
+```json
+{
+  "endpoint": "https://fcm.googleapis.com/fcm/send/…",  // the browser's push service, https only
+  "keys": { "p256dh": "BNc…", "auth": "tBH…" },          // base64url, from the subscription
+  "userAgent": "Chrome on Android"                       // optional, shown in the device list
+}
+```
+
+The answer is `{ "id": "…" }`. You keep at most 10 devices; saving an 11th drops the one seen
+longest ago. A device saved by another account moves to yours only when the browser presents that
+device's own keys; otherwise the save is refused with `409`
+`This device is registered to another account`.
+
+`GET /v1/notifications/push/subscriptions` lists your devices as
+`[{ "id", "userAgent", "createdAt", "lastSeenAt" }]`. `DELETE /v1/notifications/push/subscriptions`
+with `{ "endpoint": "…" }` removes one (for example on sign-out) and answers `204`.
+
+### Which notices are pushed
+
+`GET /v1/notifications/preferences` answers four switches. `PUT` takes any of them and answers the
+full set.
+
+```json
+{
+  "trades": true,       // new orders, locks and claims
+  "tradeEnds": true,    // expired and cancelled trades
+  "disputes": true,     // disputes filed, answered and ruled
+  "agents": true        // agent kills and policy expiry
+}
+```
+
+The switches change only what is pushed. Every notice still reaches the list and the socket.
+
+### A tapped push
+
+When someone taps a push, send `POST /v1/notifications/:id/clicked`. It marks that notice read and
+answers `204`. A notice that is not yours is `404` `Notification not found`.

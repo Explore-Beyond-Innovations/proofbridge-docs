@@ -108,6 +108,9 @@ directly; there is no relayer route for it.
   "orderTokenId": "9c0d1e2f-…",
   "status": "ACTIVE",                      // ACTIVE | PAUSED | EXHAUSTED | CLOSED, the stored status
   "routeStatus": "ACTIVE",                 // ACTIVE | RETIRED | ALL
+  "automated": true,                       // only ads that answer by themselves (true), or only the others (false)
+  "q": "star",                             // 2 to 64 chars, in the title or the maker address, any case
+  "sort": "automated-first",               // automated ads first; default is by id
   "cursor": "…",
   "limit": 25                              // 1 to 100; anything else means 25
 }
@@ -118,6 +121,10 @@ directly; there is no relayer route for it.
   from and close it.
 - With no `status`, inactive and closed ads are listed too. A marketplace should pass
   `status=ACTIVE` and hide rows whose `availableAmount` is `0`.
+- An ad is **automated** when a live [hosted pod](/v3/api/pods) serves it, or a ProofBridge maker
+  made it. `sort=automated-first` lists those first and is ignored when `automated` is set. Its
+  cursors are its own: do not mix them with the default order's.
+- `q` matches `%` and `_` as themselves. A whole Stellar `G…` address matches its stored form.
 
 ```json
 {
@@ -136,6 +143,8 @@ directly; there is no relayer route for it.
       "status": "ACTIVE",
       "routeStatus": "ACTIVE",
       "metadata": { "title": "ETH to Stellar, fast" },
+      "servedByPod": false,                    // a live pod has this ad in its set
+      "lastSettledAt": "2026-09-21T14:20:00.000Z", // when a trade on it last settled; null if none has
       "adToken": { "name": "Ether", "symbol": "ETH", "address": "0xeeee…eeee", "decimals": 18, "chainId": "11155111", "chainKind": "EVM", "kind": "NATIVE", "assetIssuer": null },
       "orderToken": { "name": "Wrapped Ether (Stellar)", "symbol": "ETH", "address": "0x4d5e…2b3c", "decimals": 18, "chainId": "1000002", "chainKind": "STELLAR", "kind": "SEP41", "assetIssuer": null },
       "createdAt": "2026-09-20T09:00:00.000Z",
@@ -148,7 +157,7 @@ directly; there is no relayer route for it.
 
 | Status | Error | When |
 | --- | --- | --- |
-| `400` | validation | A query field is invalid, for example `routeId` is not a UUID or `status` is unknown |
+| `400` | validation | A query field is invalid, for example `routeId` is not a UUID, `status` is unknown, or `q` is under 2 characters |
 
 ## My ads
 
@@ -261,8 +270,8 @@ You can withdraw only what is free on chain: the balance, less locked amounts, l
 reservations not yet locked.
 
 Only one change can be pending per ad. If an earlier change already landed but was never confirmed,
-the answer is `{ "pendingConfirmation": true, "chainKind": "EVM" }`: call
-[confirm](#confirm-a-landed-transaction), then send the request again.
+the answer is `{ "pendingConfirmation": true, "action": "FUND", "chainKind": "EVM" }` (`action` is
+`WITHDRAW` on withdraw): call [confirm](#confirm-a-landed-transaction), and the request is done.
 
 | Status | Error | When |
 | --- | --- | --- |
@@ -270,7 +279,7 @@ the answer is `{ "pendingConfirmation": true, "chainKind": "EVM" }`: call
 | `403` / `503` | | The [control check](#who-may-act-on-an-ad) refused |
 | `409` | `ad-closed` | The ad is `CLOSED` |
 | `409` | `ad-update-awaiting-confirmations` | An earlier change landed but is not deep enough yet |
-| `400` | `Ad has pending update; please wait a few minutes and try again` | An earlier change is still pending |
+| `400` | `This ad's last change hasn't finished; try again in <n> minutes` | An earlier create or close is still pending, or one the chain can't check yet. A fund or withdraw that never landed is replaced at once |
 | `400` | `poolAmountTopUp must be > 0` / `poolAmountWithdraw must be > 0` | Amount is `0` |
 | `400` | `Insufficient available balance` | Withdraw is more than the free amount |
 | `400` | `Invalid withdraw destination (Stellar: a G… or C… strkey)` | Bad `to` |
@@ -331,7 +340,7 @@ and restores the ad to `ACTIVE`.
 | --- | --- | --- |
 | `409` | `ad-update-awaiting-confirmations` | The event is not deep enough; `confirmationsRemaining` says how many blocks to wait |
 | `409` | `ad-update-unverifiable` | The chain's RPC can no longer serve every block since the quote; the relayer clears the change and re-reads the pool |
-| `400` | `Invalid request; please try again` | The change has not landed |
+| `400` | `ad-update-not-landed` | No matching event after the quote; start the action again |
 | `404` | `Ad update log not found` | Nothing is pending and there is no late create to restore |
 | `403` / `503` | | The [control check](#who-may-act-on-an-ad) refused |
 | `503` | `Ad chain unreadable — retry` | The ad chain could not be read |
@@ -378,6 +387,7 @@ pause and resume only on `ACTIVE` or `PAUSED` ads with no pending change.
 | `400` | `Cannot update status when ad is inactive` | `status` on an `INACTIVE` ad |
 | `409` | `ad-closed` | `status` on a `CLOSED` ad |
 | `409` | `ad-exhausted` | `status` on an `EXHAUSTED` ad with nothing free; fund it first |
+| `409` | `ad-update-pending` | `status` while a top-up, withdrawal or close on the ad hasn't finished. Finish it, or try again in the minutes the message names |
 | `503` | `Ad chain unreadable — retry` | `status` on an `EXHAUSTED` ad and the chain did not answer |
 
 ## Close an ad
@@ -402,8 +412,8 @@ Close is refused while any trade holds liquidity on the ad, locked on chain or r
 }
 ```
 
-Like fund and withdraw, it can answer `{ "pendingConfirmation": true, … }` when an earlier change
-landed unconfirmed, and it shares their pending-change and chain refusals.
+Like fund and withdraw, it can answer `{ "pendingConfirmation": true, "action": "CLOSE", … }` when an
+earlier close landed unconfirmed, and it shares their pending-change and chain refusals.
 
 | Status | Error | When |
 | --- | --- | --- |
