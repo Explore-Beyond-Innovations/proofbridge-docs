@@ -54,7 +54,7 @@
                   "v3/concepts/deposit-proofs",
                   "v3/concepts/merkle-mountain-range",
                   "v3/concepts/order-hashing",
-                  "concepts/decimal-scaling",
+                  "v3/concepts/decimal-scaling",
                   "v3/concepts/agents",
                   "v3/concepts/supported-networks"
                 ]

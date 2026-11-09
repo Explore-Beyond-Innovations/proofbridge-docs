@@ -115,7 +115,7 @@ same `order` on every page of one walk.
       "adChainId": "1000002",
       "orderChainId": "11155111",
       "bridgerAddress": "0x7E5F4552091A69125d5DfCb7b8C2659029395Bdf",
-      "amount": "1000000",                  // order-token base units
+      "amount": "1000000000000000000",                  // order-token base units
       "status": "LOCKED",
       "deadline": "1791158400",             // unix seconds
       "createdAt": "2026-10-04T09:00:00.000Z",
@@ -123,8 +123,8 @@ same `order` on every page of one walk.
       "ad": { "id": "6d1e8a20-…", "routeId": "2b7f4c1e-…", "creatorAddress": "0x3b9f…7e8", "servedByPod": false },
       "route": {
         "id": "2b7f4c1e-…",
-        "adToken": { "id": "a1b2…", "symbol": "USDC", "chain": { "name": "Stellar Testnet", "chainId": "1000002", "kind": "STELLAR" }, "kind": "SAC", "address": "0x9a8b…6778", "decimals": 7 },
-        "orderToken": { "id": "b2c3…", "symbol": "USDC", "chain": { "name": "Ethereum Sepolia", "chainId": "11155111", "kind": "EVM" }, "kind": "ERC20", "address": "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238", "decimals": 6 }
+        "adToken": { "id": "a1b2…", "symbol": "PB", "chain": { "name": "Stellar Testnet", "chainId": "1000002", "kind": "STELLAR" }, "kind": "SEP41", "address": "0xb511…2364", "decimals": 7 },
+        "orderToken": { "id": "b2c3…", "symbol": "PB", "chain": { "name": "Ethereum Sepolia", "chainId": "11155111", "kind": "EVM" }, "kind": "ERC20", "address": "0x407498fD9C955bed021c03BcbB99aD514042b59B", "decimals": 18 }
       },
       "adCreatorClaimed": false,            // the maker's leg paid out
       "bridgerClaimed": false,              // the bridger's leg paid out
@@ -219,7 +219,7 @@ send to the `OrderPortal`.
 ```json
 {
   "adId": "6d1e8a20-4b7c-4f3a-a1d2-9c0b7e5f3a18",
-  "amount": "1000000",                       // order-token base units
+  "amount": "1000000000000000000",                       // order-token base units
   "bridgerDstAddress": "GBRPYHIL2CI3FNQ4BXLFMNDLFJUNPU2HY3ZMFSHONUCEOASW7QC7OX2H" // where you are paid, on the AD chain
 }
 ```
@@ -245,9 +245,9 @@ hold on the ad.
     "orderHash": "0x2f4e…1f3e",             // the trade's key everywhere
     "chainKind": "EVM",
     "orderParams": {
-      "orderChainToken": "0x0000…7238",
-      "adChainToken": "0x9a8b…6778",
-      "amount": "1000000",
+      "orderChainToken": "0x0000…b59b",
+      "adChainToken": "0xb511…2364",
+      "amount": "1000000000000000000",
       "bridger": "0x0000…5bdf",             // must equal the sending wallet
       "orderRecipient": "0x62fc…c2d1",
       "adChainId": "1000002",
@@ -256,7 +256,7 @@ hold on the ad.
       "adCreator": "0x3b9f…7e8",
       "adRecipient": "0x3b9f…7e8",
       "salt": "164980957715010214566213624064893475949",
-      "orderDecimals": 6,
+      "orderDecimals": 18,
       "adDecimals": 7,
       "deadline": "1791158400",
       "adSettlementSigner": "0x3b9f…7e8",
@@ -373,9 +373,9 @@ co-signing can start.
 
 ```json
 {
-  "orderChainToken": "0x0000…7238",
-  "adChainToken": "0x9a8b…6778",
-  "amount": "1000000",
+  "orderChainToken": "0x0000…b59b",
+  "adChainToken": "0xb511…2364",
+  "amount": "1000000000000000000",
   "bridger": "0x0000…5bdf",
   "orderChainId": "11155111",
   "orderPortal": "0x0000…0aa3",
@@ -387,7 +387,7 @@ co-signing can start.
   "adCreatorKind": "WALLET",          // WALLET | STELLAR_AGENT_ACCOUNT | EVM_CUSTODY_ACCOUNT
   "adRecipient": "0x3b9f…7e8",
   "salt": "164980957715010214566213624064893475949",
-  "orderDecimals": 6,
+  "orderDecimals": 18,
   "adDecimals": 7,
   "deadline": "1791158400",
   "adSettlementSigner": "0x3b9f…7e8",
