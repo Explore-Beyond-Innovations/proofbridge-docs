@@ -1,6 +1,6 @@
 ---
 title: "Authentication"
-description: "Sign in with an EVM or Stellar wallet, refresh and end the session, and link a second wallet"
+description: "Sign in with an EVM or Stellar wallet, refresh and end the session, link, unlink or move a wallet, and mint read tokens for tools"
 ---
 
 You sign in by proving you own a wallet: the relayer makes a challenge, your wallet signs it, and
@@ -11,7 +11,8 @@ challenge transaction.
 
 A user holds at most one EVM wallet and one Stellar wallet. The first wallet you sign in with
 creates the user; you attach the other with `POST /v1/auth/link` while signed in. Signing in later
-with either wallet lands on the same user.
+with either wallet lands on the same user. You can later unlink one of the two, or move a wallet
+that sits alone on another account onto yours.
 
 ## Endpoints
 
@@ -22,10 +23,17 @@ with either wallet lands on the same user.
 | `POST /v1/auth/refresh` | refresh token | get the next token pair |
 | `POST /v1/auth/logout` | refresh token | end the session |
 | `POST /v1/auth/link` | user | attach your wallet on the other chain kind |
+| `POST /v1/auth/unlink` | user | remove one of your two wallets, signed by the one that stays |
+| `POST /v1/auth/move-wallet/challenge` | user | get a challenge that moves a wallet to your account |
+| `POST /v1/auth/move-wallet` | user | move the wallet that signed to your account |
+| `POST /v1/auth/scoped-token` | user | mint a read-only token for a tool |
+| `GET /v1/auth/scoped-tokens` | user or read | list your live read tokens |
+| `DELETE /v1/auth/scoped-tokens/:id` | user | revoke a read token |
 | `GET /v1/user/me` | user | your user and the wallets linked to it |
 
-Challenge, login and link use the strict rate limit (10 a minute per IP). Refresh and logout allow
-10 a minute per session.
+Every `/v1/auth/*` route uses the strict rate limit (10 a minute per IP), except these: refresh and
+logout allow 10 a minute per session, and `GET /v1/auth/introspect` (used by the
+[MCP server](/v3/api/mcp)) has the default per-user limit.
 
 ## Tokens and sessions
 
@@ -244,7 +252,8 @@ Response `201`:
 ```
 
 The challenge is spent before the link rules run, so after a `409` get a new challenge before you
-try another wallet. There is no route to unlink or replace a wallet.
+try another wallet. To replace a wallet, [unlink](#unlink-a-wallet) the old one first. If the
+wallet is on another account, [move it](#move-a-wallet-to-your-account) instead.
 
 | Status | Error | When |
 | --- | --- | --- |
@@ -256,6 +265,135 @@ try another wallet. There is no route to unlink or replace a wallet.
 
 Linked smart accounts (a Stellar custody account, or an EVM custody account) are a separate thing;
 see [Accounts](/v3/api/accounts).
+
+## Unlink a wallet
+
+`POST /v1/auth/unlink`, with your access token. You remove one of your two wallets, and the wallet
+that stays proves it is you: get a fresh challenge for the wallet you keep, sign it, and send the
+same body as login plus `remove`, the chain kind of the wallet that goes.
+
+```json
+{
+  "chainKind": "EVM",                 // the wallet you keep
+  "message": "app.pfbridge.xyz wants you to sign in with your Ethereum account: …",
+  "signature": "0x8b20f7…701c",
+  "remove": "STELLAR"                 // the wallet that goes
+}
+```
+
+Response `200`:
+
+```json
+{
+  "user": { "id": "3e9d1c55-8a2b-4c7d-b0f4-6a1e2d3c4b5a", "username": "brave-alice" },
+  "tokens": { "access": "eyJhbGciOiJIUzI1NiIs…", "refresh": "eyJhbGciOiJIUzI1NiIs…" },  // a browser gets the cookie instead
+  "removed": "0xba721925f25b54e556980c0509898fbe5b516d68937803189cafecdcb3f89783",
+  "onChain": { "openAds": 1, "openTrades": 4, "liveKeys": 1, "accountsRemoved": 1 }
+}
+```
+
+- **Every session ends.** All your sign-ins and every read token stop working, and the answer
+  carries a fresh token pair for this one. Store it.
+- **Smart accounts on that chain go with it.** Agent accounts you linked on the removed wallet's
+  chain are unlinked; `accountsRemoved` counts them.
+- **The chain is not changed.** `onChain` counts what stays tied to the removed wallet and its
+  accounts: open ads, open trades and live settlement keys. Open trades pay out to the receive
+  address each was opened with, and only the removed wallet can close the ads it made.
+
+| Status | Error | When |
+| --- | --- | --- |
+| `400`, `401` | | any login refusal above |
+| `400` | | `Sign with the wallet you are keeping`: `chainKind` is the wallet you are removing |
+| `401` | | `This session has ended; sign in again` |
+| `403` | | `Sign with the wallet you are keeping`: the signature is from another wallet |
+| `404` | | `No wallet on that chain is linked to this account` |
+| `409` | | `This is the account's only wallet, so it can't be unlinked` |
+| `409` | | `The wallet changed; reload and retry` |
+| `403` | `csrf-refused` | a browser request failing the origin check |
+
+## Move a wallet to your account
+
+If a wallet you hold signed in once on its own, it has an account of its own, and `link` refuses it
+with `Wallet is already linked to a different account`. A move takes it from that account to yours,
+with its ads, trades, settlement keys, faucet claims and past notifications. The old account's
+email, push devices and settings stay behind, and that account is signed out everywhere and left
+with no wallet.
+
+1. `POST /v1/auth/move-wallet/challenge` with `{ "chainKind", "address" }`, while signed in to the
+   account that receives the wallet. The relayer checks the move can happen first, so a refusal
+   comes before any signature. An EVM answer adds `statement`, which names your account; build the
+   SIWE message with it. A Stellar answer is a SEP-10 transaction, as for login.
+2. Sign it with the wallet being moved.
+3. `POST /v1/auth/move-wallet` with the same body as login.
+
+```json
+{ "moved": "0x5C08e1A05e2E0913dDE6DDa25d81055C1cd80Ca2", "chainKind": "EVM" }
+```
+
+No new tokens are issued; your own session carries on.
+
+| Status | Error | When |
+| --- | --- | --- |
+| `409` | `wallet-move-not-linked` | the wallet is on no account; link it instead |
+| `409` | `wallet-move-same-account` | the wallet is already on your account |
+| `409` | `wallet-move-source-other-wallet` | its account also holds another wallet; unlink that one there first |
+| `409` | `wallet-move-source-pod` | its account has a pod; delete the pod first, or use that account |
+| `409` | `wallet-move-source-smart-account` | its account has a smart account; use that account instead |
+| `409` | `wallet-move-source-faucet-claim` | its account has a faucet claim in progress; try again when it finishes |
+| `409` | `wallet-move-target-chain-taken` | your account already has a wallet on this chain; unlink it first |
+| `409` | `wallet-move-target-pod` | your account is a pod's own account, which can't take another wallet |
+| `409` | `wallet-move-changed` | the wallet's account changed while you were signing; try again |
+| `400`, `401` | | any login refusal above, or `This session has ended; sign in again` |
+| `403` | `csrf-refused` | a browser request failing the origin check |
+
+A read token cannot move or unlink a wallet.
+
+## Read tokens for tools
+
+A read token is an access token that reaches only read-safe routes. It carries no refresh token,
+and you can revoke it at any time. Use one to give a script or a tool a view of your account
+without the power to trade. It still shows your wallet addresses, balances, pod ids, trade history
+and counterparties, so treat it as private. The [MCP server](/v3/api/mcp) gets the same kind of
+token through OAuth.
+
+`POST /v1/auth/scoped-token` mints one. It needs your full access token: a read token cannot mint
+another.
+
+```json
+{
+  "label": "Claude Desktop, work laptop",     // 1 to 120 chars, how you will recognise it
+  "resource": "https://mcp.pfbridge.xyz/mcp"  // optional: the server it is for, written into its audience
+}
+```
+
+Response `201`. The token is shown once:
+
+```json
+{
+  "id": "a7c1e2d3-…",
+  "label": "Claude Desktop, work laptop",
+  "scope": "read",
+  "token": "eyJhbGciOiJIUzI1NiIs…",
+  "expiresAt": "2026-10-04T10:00:00.000Z"     // 1 hour by default
+}
+```
+
+`GET /v1/auth/scoped-tokens` lists your tokens that are not revoked, newest first. Each row has
+`id`, `label`, `scope`, `createdAt`, `expiresAt`, `expired`, and `lastUsedAt` and `lastRoute`: when
+and where it was last used. That is how you spot a token copied somewhere you did not expect.
+
+`DELETE /v1/auth/scoped-tokens/:id` revokes one. It stops working on its next request. Revoking a
+token twice answers the same `{ "id" }`.
+
+Unlinking a wallet revokes every read token on the account.
+
+| Status | Error | When |
+| --- | --- | --- |
+| `400` | | `label` or `resource` failed validation |
+| `403` | `scope-insufficient` | a read token at mint or revoke, or at any route that is not read-safe |
+| `401` | `token-revoked` / `token-expired` | a read token that was revoked or ran out; mint a new one |
+| `404` | | `You already hold 20 live read tokens. Revoke one first.` (mint) |
+| `404` | | `No such read token` (revoke) |
 
 ## Who am I
 
