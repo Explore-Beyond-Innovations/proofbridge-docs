@@ -39,9 +39,10 @@ The deadline and windows are set short on soak, so you can test every ending in 
     An **Ethereum** one — MetaMask or another WalletConnect wallet, or your wallet's own browser. That side works
     on a phone.
 
-    **Stellar wallets do not.** None can produce the message signature a settlement key needs: Lobstr pairs over
-    WalletConnect but its session does not permit message signing, and xBull's phone option opens a separate web
-    wallet instead of the xBull app. Freighter, Lobstr and Hana's browser versions are desktop extensions.
+    **For Stellar, no phone wallet is verified yet.** The app to try is **Freighter Mobile** over WalletConnect: it
+    supports message signing, but it's untested here. Set it to **Testnet** before you scan, or it declines the
+    pairing. Lobstr pairs over WalletConnect, but its session does not permit message signing. Freighter, Lobstr and
+    Hana's browser versions are desktop extensions.
 
     You can still bridge from a phone with only an Ethereum wallet — type your Stellar address as the destination
     and nothing needs signing on that side.

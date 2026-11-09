@@ -13,20 +13,22 @@ Work through this once. Each step links the full guide if you get stuck.
     WalletConnect or your wallet's own browser.
   </Card>
   <Card title="Stellar Testnet" icon="/logos/stellar.svg">
-    Freighter, Lobstr, xBull or Hana — **desktop only**. See the note below.
+    Freighter, Lobstr, xBull or Hana on desktop. On a phone, Freighter Mobile over WalletConnect is
+    worth trying, but it's untested. See the note below.
   </Card>
 </CardGroup>
 
 <Warning>
-  **Stellar wallets do not work on a phone yet.** None of them can produce the message
-  signature a settlement key needs: Lobstr pairs over WalletConnect but its session does not
-  permit message signing, and xBull's phone option opens a separate web wallet rather than the
-  xBull app.
+  **No Stellar phone wallet is verified yet.** A settlement key needs the wallet to sign a
+  message. The app to try is **Freighter Mobile** over WalletConnect: it supports message
+  signing, but no signature from it has been checked here yet. Set it to **Testnet** before you
+  scan, or it declines the pairing. Lobstr pairs over WalletConnect, but its session does not
+  permit message signing.
 
-  You can still test on a phone — just use your **Ethereum wallet** there. Sign in on Sepolia,
+  You can still test on a phone with your **Ethereum wallet**. Sign in on Sepolia,
   register your settlement key, and type your Stellar address when you bridge, so no Stellar
-  wallet is needed to be paid. Anything that signs on the Stellar side — posting an ad, or
-  trading from a Stellar wallet — needs a desktop browser.
+  wallet is needed to be paid. Anything that signs on the Stellar side, such as posting an ad
+  or trading from a Stellar wallet, is surest in a desktop browser.
 </Warning>
 
 Switch each wallet to its testnet: **Sepolia** in your EVM wallet, **Testnet** in your Stellar wallet.
