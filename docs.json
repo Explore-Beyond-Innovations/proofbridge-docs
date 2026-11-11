@@ -69,6 +69,12 @@
                 ]
               },
               {
+                "group": "Architecture",
+                "pages": [
+                  "v3/architecture/overview"
+                ]
+              },
+              {
                 "group": "Guides",
                 "pages": [
                   "v3/guides/connect-wallet",
