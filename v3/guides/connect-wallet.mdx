@@ -22,9 +22,16 @@ and whether you're connected and signed in there.
 
 ## On a phone
 
-Freighter, Lobstr and Hana's browser versions are desktop extensions. On a
-phone, connect with **xBull** or through **WalletConnect** (for example,
-the Lobstr or Freighter mobile app).
+An EVM wallet works on a phone through WalletConnect or your wallet's own
+browser.
+
+For Stellar, Freighter, Lobstr and Hana's browser versions are desktop
+extensions. On a phone, the app to try is **Freighter Mobile** over
+**WalletConnect**: it supports message signing, but it hasn't been
+verified with ProofBridge yet. Set the app to **Testnet** before you scan
+the code, or it declines the pairing. The Lobstr app pairs, but it can't
+sign the message a settlement key needs, so you can't register a key
+through it.
 
 ## Which wallets do you need?
 
@@ -45,6 +52,28 @@ Stellar wallets sign a SEP-10 challenge.
 Connecting your second wallet links it to the same account, so the app
 shows all your trades in one place. The hub shows **Link wallet
 required** until you do.
+
+### Unlink or replace a wallet
+
+To swap a wallet, click **Unlink** on its row in the hub. Your other
+wallet signs to confirm, so you need it connected. Unlinking signs you
+out on every device, and any agent accounts linked through that wallet
+are unlinked too. Trades already open still pay out to the receive
+address each was opened with, and only the unlinked wallet can close the
+ads it made. You can't unlink your only wallet.
+
+If you connect a new wallet while the old one is still on the account,
+the row says **Another wallet is linked**: unlink the old one first.
+
+### Move a wallet from another account
+
+A wallet that once signed in on its own has its own account. When you
+connect it to link, the hub says "This wallet is on another account" and
+offers **Move it here**. The wallet signs once, and its ads, trades,
+settlement keys, faucet claims and past notifications move with it. The
+old account's email, push devices and settings stay behind, and you
+can't sign in to that account again. An account that holds a second
+wallet, a pod or an agent account can't be moved from.
 
 You stay signed in while you use the app. After two weeks without use, or
 30 days in all, you sign in again.

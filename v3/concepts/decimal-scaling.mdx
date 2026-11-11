@@ -1,0 +1,135 @@
+---
+title: "Decimal scaling across chains"
+sidebarTitle: "Decimal scaling"
+description: "How ProofBridge moves value between tokens with different decimal representations without losing precision or trust."
+---
+
+Bridging a token between two chains usually means the two sides have different
+numeric representations of the same asset: 18 decimals on EVM, 7 on
+Stellar. ProofBridge handles this inline. The order names both tokens'
+decimals, each escrow checks its side against the token contract, and both
+chains do the scaling arithmetic in a shared primitive so the two sides
+never drift.
+
+## The order carries decimals
+
+Every order commits to two fields:
+
+| Field | Type | Meaning |
+|---|---|---|
+| `orderDecimals` | `uint8` | Decimals of the token on the **order chain** (where the bridger deposits). |
+| `adDecimals` | `uint8` | Decimals of the token on the **ad chain** (where the ad creator provides liquidity). |
+
+Both are part of the [order hash](/v3/concepts/order-hashing), which both
+parties [co-sign](/v3/concepts/co-signing). A co-signature covers an amount
+at a specific decimal scaling, so changing either value changes the order.
+
+## `params.amount` is always in order-chain units
+
+By convention, `params.amount` is the **raw unit amount on the order chain**.
+For an 18-decimal ERC-20, that's wei. For a 7-decimal Stellar asset, it's
+the base unit shown in Horizon.
+
+When the order lands on the ad chain, `AdManager` computes the ad-side
+amount internally:
+
+```text
+adAmount = params.amount × 10^(adDecimals − orderDecimals)
+```
+
+This runs through the shared `DecimalScaling` primitive (EVM library +
+`proofbridge-core::decimal_scaling` on Stellar) before any pool accounting
+or token transfer. The order chain only ever sees the raw
+`params.amount`; the ad chain only ever sees the scaled `adAmount`.
+
+## Worked example: 18-decimal ↔ 7-decimal
+
+Say a bridger is moving 1 ETH from an 18-decimal chain and matching it
+against an ad denominated in a 7-decimal token on Stellar.
+
+```text
+orderDecimals = 18
+adDecimals    = 7
+params.amount = 1 × 10¹⁸              # 1 whole ETH, in wei
+adAmount      = params.amount × 10^(7 − 18)
+              = 10¹⁸ / 10¹¹
+              = 10⁷                   # 1 whole unit of the 7-decimal token
+```
+
+And the reverse direction — 100 whole units of a 7-decimal token matched
+against an 18-decimal ad:
+
+```text
+adAmount      = 100 × 10⁷ = 10⁹
+params.amount = adAmount × 10^(18 − 7)
+              = 10²⁰                  # 100 whole units of the 18-decimal token
+```
+
+In both cases, `params.amount` is what the bridger deposits, what lands in
+the OrderPortal, and what rides through the Merkle tree and the ZK proof.
+
+## On-chain decimals must match the order's decimals
+
+Both escrows defend against an order that states the wrong decimals.
+Before any funds move:
+
+- `OrderPortal` asserts `params.orderDecimals == token.decimals()` for the
+  deposited token (with `wNativeToken` used for ETH / XLM wrappers).
+- `AdManager` asserts `params.adDecimals == token.decimals()` for the
+  ad-side token.
+
+A mismatch reverts before any scaling or transfer runs. This catches two
+classes of bug: an order built from a template with the wrong decimals,
+and a subtle "token has been re-deployed with different decimals" drift.
+
+## Guardrails
+
+- **`MAX_DECIMALS = 30`** — rejects absurd values at the boundary and
+  keeps the `10^diff` factor well inside `uint256` headroom.
+- **Scale-up is overflow-checked** — Solidity 0.8 reverts on overflow by
+  default, and the Stellar implementation uses explicit checked
+  arithmetic.
+- **Scale-down reverts on non-exact division** — if the raw amount
+  doesn't divide evenly when mapping from higher to lower decimals, the
+  settlement reverts. Silent truncation would change the economic value
+  of the order, so it's treated as an amount error and surfaced to
+  the user before any money moves.
+
+## Error surface
+
+New errors emitted when a decimal invariant is violated:
+
+**EVM**
+
+- `DecimalScaling__DecimalsOutOfRange(uint8)` — `orderDecimals` or
+  `adDecimals` exceeds `MAX_DECIMALS`.
+- `DecimalScaling__NonExactDownscale(uint256 amount, uint8 fromDec, uint8 toDec)` —
+  scale-down would truncate.
+- `DecimalScaling__DecimalsMismatch(uint8 expected, uint8 provided)` —
+  raised by `assertMatchesOnChain` when the order's decimals don't equal
+  the token contract's `decimals()`.
+- `DecimalScaling__DecimalsUnavailable(address token)` — the token does
+  not answer `decimals()`.
+
+**Stellar**
+
+- `OrderDecimalsMismatch` and `AdDecimalsMismatch`, in the `OrderPortal`
+  and `AdManager` error sets.
+- The range and non-exact-downscale errors inside
+  `proofbridge-core::decimal_scaling`.
+
+## From 1-to-1 bridging to cross-asset trades (exploratory)
+
+Today's scaling is a pure decimal re-basing between two representations
+of the same underlying asset — `1 ETH ↔ 1 wETH`, `1 XLM ↔ 1 wXLM`. The
+order surface stays small and the settlement math stays
+auditable.
+
+Once the current roadmap is delivered, extending routes to quote
+cross-asset rates is a natural follow-up: a single order could bridge
+*and* swap in one step (for example `ETH → USDC on Stellar`). The
+order would gain a rate field, `DecimalScaling.scale`
+would gain a rate-aware overload, and ad creators would either set their
+own rates or opt into a shared rate-balancing layer. Nothing in the
+current design forecloses this direction — but it's not part of the
+current plan.

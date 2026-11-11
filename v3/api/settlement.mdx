@@ -148,7 +148,7 @@ may read it.
 | --- | --- |
 | `state` | The settlement state (below) |
 | `signaturesCollected`, `parties` | The pair's progress |
-| `partyKeys` | Per party: `account` (the maker's is the settlement signer) and `registered`, a confirmed key on both trade chains |
+| `partyKeys` | Per party: `account` (the maker's is the settlement signer) and `registered`, a confirmed key on both trade chains. `unread: true` with `registered: false` means a key registry could not be read: retry, don't register |
 | `legs` | Per leg: `BUILT` (proof built, waiting for the other leg) or `RELEASED` (handed to the submitter). `sideFlag` `0` is the ad-chain payout to the bridger, `1` the order-chain payout to the maker |
 | `halt` | The relayer is holding the payouts because the maker halted settlement on chain (below) |
 | `resign` | The relayer dropped a complete pair the chain would refuse, for example because a key slot expired. `reason` says what comes next; both parties sign again |

@@ -4,8 +4,8 @@ description: "Send a bug report or feedback, with screenshots or a screen record
 ---
 
 The public feedback form sends reports here. You don't need to sign in. Each write carries a
-Cloudflare Turnstile token, and the relayer caps how many reports and uploads one address can send
-per hour. To attach files, upload each one first, then name it in the report.
+Cloudflare Turnstile token, and the relayer caps how many reports and uploads can be sent per
+hour. To attach files, upload each one first, then name it in the report.
 
 ## Endpoints
 
@@ -81,7 +81,8 @@ is deleted 24 hours after its last upload, so send the report soon after the upl
 
 ## Log a report
 
-`POST /v1/feedback`. Limit: 10 reports per hour per address.
+`POST /v1/feedback`. Limit: 10 reports per hour per signed-in account, or per address when you are
+not signed in. On top of that, one address can store at most 60 reports an hour, whoever sends them.
 
 Strings are trimmed. Optional fields may be left out, `null` or `""`.
 
@@ -136,4 +137,5 @@ Response `201`:
 | `400` | | a field failed validation; `field` names the first one, for example `title` or `attachments.0.sha256` |
 | `404` | `feedback-attachment-not-found` | an attachment's hash was never uploaded (or was already deleted); `field` is `attachments` and nothing is saved |
 | `403`, `503` | | the bot check above |
-| `429` | | over 10 reports an hour from your address |
+| `429` | | over 10 reports an hour from your account (or your address, signed out) |
+| `429` | `feedback-address-cap` | 60 reports from your address in the last hour |

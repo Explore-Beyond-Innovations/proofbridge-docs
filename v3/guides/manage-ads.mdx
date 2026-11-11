@@ -1,6 +1,6 @@
 ---
 title: "Manage ads"
-description: "Top up, withdraw and close your liquidity"
+description: "Top up, withdraw, reactivate and close your liquidity"
 ---
 
 **My Ads** lists every ad you've created, including ads held by your
@@ -24,13 +24,17 @@ linked agent accounts, with its route, available liquidity and limits.
 
 Open an ad's menu:
 
+- **Reactivate:** shown on a paused ad. A paused ad keeps its funds but
+  isn't on the bridge page and takes no new orders; this puts it back
 - **Top Up:** add liquidity
 - **Withdraw:** take out liquidity that no open trade is holding
 - **Close Ad:** reclaim the remaining liquidity. Close only once the ad's
   open trades have ended.
 - **Complete Setup:** finish an ad whose creation didn't complete
 
-Each action is a transaction from your wallet; the app confirms it landed.
+Top Up, Withdraw and Close Ad are transactions from your wallet; the app
+confirms each one landed. An ad a hosted pod trades for shows a **Pod**
+tag.
 
 <Note>
 **Available vs liquidity:** a new order can take your on-chain liquidity

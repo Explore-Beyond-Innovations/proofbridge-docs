@@ -33,8 +33,12 @@ and locked, so a later change never affects a trade in flight.
 | Margin | how long before the end of the cancel window the ad chain stops accepting a co-signed payout | 5 minutes |
 | Claim stagger | how long before the deadline the order chain stops accepting a co-signed payout | 1 minute |
 
-The app sets an order's deadline at twice the shortest window, so about 40
-minutes on soak. An order's window can never be longer than 7 days.
+The relayer sets an order's deadline when the order is created. It takes
+the larger of two lengths: its own configured deadline, or twice the
+route's shortest window (so the maker's lock still lands in time). It
+never goes past the escrows' 7-day limit. The relayer's default is one
+day; soak sets it to 2 hours, so a soak order's deadline is about 2 hours
+after you create it.
 
 ## How the timeline plays out
 

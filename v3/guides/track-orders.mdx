@@ -4,7 +4,9 @@ description: "The Orders page, the trade page, and what each status asks of you"
 ---
 
 The **Orders** page shows every trade you're a party to, in **Pending
-Orders** and **Completed** tabs. Open any order to see its trade page.
+Orders**, **Completed** and **Cancelled** tabs. **Newest** and **Oldest**
+change the order they're listed in. An order on an ad a hosted pod
+trades for shows a **Pod** tag. Open any order to see its trade page.
 
 <Frame caption="Pending Orders: one locked, one still waiting">
   <img src="/images/v3/orders-02-pending-two-states.png" alt="The Orders page on the Pending Orders tab with two orders, one marked Locked and one Pending, each showing its deadline" />
@@ -48,6 +50,7 @@ Orders** and **Completed** tabs. Open any order to see its trade page.
 | **Cancel claimed** | the cancel window is open |
 | **Refund on its way** | the cancel finished; your deposit is being refunded |
 | **Cancelled** | the trade ended without settling; funds returned |
+| **Being restored** | your deposit landed just as the reservation expired; it shows as active within a minute, with nothing to send again |
 | **Held: the maker has paused settlement** | the maker halted settlement; it continues when they resume, or the trade takes the cancel path |
 | **Disputed** | a dispute was filed |
 
@@ -60,3 +63,9 @@ The bell tracks: a new order on your ad, an order locked, a Bridger
 claimed, an order expired, a trade cancelled, a dispute opened, answered
 or ruled, and agent alerts (killed, policy expiring or expired, guard
 rail).
+
+To get them on this device even when ProofBridge is closed, open the
+**Accounts** page and click **Turn on notifications** under **Device
+notifications**. You choose which groups are sent there. Under **Email
+updates** on the same page you can add an address for an email when a
+trade needs you.

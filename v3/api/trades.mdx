@@ -21,6 +21,10 @@ relayer never moves funds. Settlement, the step after the lock, is on [Settlemen
 | `POST /v1/trades/:id/lock` | user | The maker's `lockForOrder` call |
 | `POST /v1/trades/:id/half` | user | Send your half of the trade secret |
 | `POST /v1/trades/:id/confirm` | user | Report that the deposit or the lock landed |
+| `GET /v1/trades/pod-pinned` | user | Your open trades pinned to a deleted pod's key |
+| `GET /v1/trades/:id/repin` | user | Whether a trade can be taken over now, and the latest try |
+| `POST /v1/trades/:id/repin/prepare` | user | The message to sign to take a trade over |
+| `POST /v1/trades/:id/repin` | user | File the signed take-over |
 
 ## The flow
 
@@ -61,6 +65,7 @@ only its own half.
 | --- | --- |
 | `expired-reservation` | The deposit never landed and the 30-minute reservation expired |
 | `null` | A newer reservation by the same bridger on the same ad replaced this one |
+| `replaced-by-landed` | An earlier reservation's deposit landed after all, so this newer one, never paid, was cancelled |
 | `never-locked` | The maker never locked; the bridger was refunded |
 | `finalized` | The cancel window closed with no settlement |
 | `half-missing` | A leg's half of the trade secret never arrived, so the trade could not settle |
@@ -90,12 +95,14 @@ naming someone else's address returns nothing of theirs.
   "minAmount": "1000",                // order-token base units
   "maxAmount": "5000000",
   "status": "LOCKED,CLAIMED",         // one status or a comma-separated list
+  "order": "desc",                    // desc (newest first, the default) or asc (oldest first)
   "cursor": "…",
   "limit": 25                         // 1 to 100
 }
 ```
 
-A page can come back shorter than `limit`. Keep following `nextCursor` until it is `null`.
+A page can come back shorter than `limit`. Keep following `nextCursor` until it is `null`, with the
+same `order` on every page of one walk.
 
 ```json
 {
@@ -108,16 +115,16 @@ A page can come back shorter than `limit`. Keep following `nextCursor` until it 
       "adChainId": "1000002",
       "orderChainId": "11155111",
       "bridgerAddress": "0x7E5F4552091A69125d5DfCb7b8C2659029395Bdf",
-      "amount": "1000000",                  // order-token base units
+      "amount": "1000000000000000000",                  // order-token base units
       "status": "LOCKED",
       "deadline": "1791158400",             // unix seconds
       "createdAt": "2026-10-04T09:00:00.000Z",
       "updatedAt": "2026-10-04T09:04:10.000Z",
-      "ad": { "id": "6d1e8a20-…", "routeId": "2b7f4c1e-…", "creatorAddress": "0x3b9f…7e8" },
+      "ad": { "id": "6d1e8a20-…", "routeId": "2b7f4c1e-…", "creatorAddress": "0x3b9f…7e8", "servedByPod": false },
       "route": {
         "id": "2b7f4c1e-…",
-        "adToken": { "id": "a1b2…", "symbol": "USDC", "chain": { "name": "Stellar Testnet", "chainId": "1000002", "kind": "STELLAR" }, "kind": "SAC", "address": "0x9a8b…6778", "decimals": 7 },
-        "orderToken": { "id": "b2c3…", "symbol": "USDC", "chain": { "name": "Ethereum Sepolia", "chainId": "11155111", "kind": "EVM" }, "kind": "ERC20", "address": "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238", "decimals": 6 }
+        "adToken": { "id": "a1b2…", "symbol": "PB", "chain": { "name": "Stellar Testnet", "chainId": "1000002", "kind": "STELLAR" }, "kind": "SEP41", "address": "0xb511…2364", "decimals": 7 },
+        "orderToken": { "id": "b2c3…", "symbol": "PB", "chain": { "name": "Ethereum Sepolia", "chainId": "11155111", "kind": "EVM" }, "kind": "ERC20", "address": "0x407498fD9C955bed021c03BcbB99aD514042b59B", "decimals": 18 }
       },
       "adCreatorClaimed": false,            // the maker's leg paid out
       "bridgerClaimed": false,              // the bridger's leg paid out
@@ -140,12 +147,15 @@ A page can come back shorter than `limit`. Keep following `nextCursor` until it 
 }
 ```
 
-Dispute fields are explained on [Disputes](/v3/api/disputes).
+Dispute fields are explained on [Disputes](/v3/api/disputes). `ad.servedByPod` is `true` when a
+live [hosted pod](/v3/api/pods) has the ad in its set. It does not promise a lock: the pod's policy
+may not name the ad yet.
 
 | Status | Error | When |
 | --- | --- | --- |
 | `400` | validation | A bad UUID, `limit` over 100, or an unknown status |
 | `400` | `Invalid address filter` | An address filter cannot be normalised |
+| `400` | validation | `order` is not `desc` or `asc` |
 | `401` | `Missing bearer token` | No access token |
 
 ## Trades your agent may act on
@@ -209,7 +219,7 @@ send to the `OrderPortal`.
 ```json
 {
   "adId": "6d1e8a20-4b7c-4f3a-a1d2-9c0b7e5f3a18",
-  "amount": "1000000",                       // order-token base units
+  "amount": "1000000000000000000",                       // order-token base units
   "bridgerDstAddress": "GBRPYHIL2CI3FNQ4BXLFMNDLFJUNPU2HY3ZMFSHONUCEOASW7QC7OX2H" // where you are paid, on the AD chain
 }
 ```
@@ -235,9 +245,9 @@ hold on the ad.
     "orderHash": "0x2f4e…1f3e",             // the trade's key everywhere
     "chainKind": "EVM",
     "orderParams": {
-      "orderChainToken": "0x0000…7238",
-      "adChainToken": "0x9a8b…6778",
-      "amount": "1000000",
+      "orderChainToken": "0x0000…b59b",
+      "adChainToken": "0xb511…2364",
+      "amount": "1000000000000000000",
       "bridger": "0x0000…5bdf",             // must equal the sending wallet
       "orderRecipient": "0x62fc…c2d1",
       "adChainId": "1000002",
@@ -246,7 +256,7 @@ hold on the ad.
       "adCreator": "0x3b9f…7e8",
       "adRecipient": "0x3b9f…7e8",
       "salt": "164980957715010214566213624064893475949",
-      "orderDecimals": 6,
+      "orderDecimals": 18,
       "adDecimals": 7,
       "deadline": "1791158400",
       "adSettlementSigner": "0x3b9f…7e8",
@@ -363,9 +373,9 @@ co-signing can start.
 
 ```json
 {
-  "orderChainToken": "0x0000…7238",
-  "adChainToken": "0x9a8b…6778",
-  "amount": "1000000",
+  "orderChainToken": "0x0000…b59b",
+  "adChainToken": "0xb511…2364",
+  "amount": "1000000000000000000",
   "bridger": "0x0000…5bdf",
   "orderChainId": "11155111",
   "orderPortal": "0x0000…0aa3",
@@ -377,7 +387,7 @@ co-signing can start.
   "adCreatorKind": "WALLET",          // WALLET | STELLAR_AGENT_ACCOUNT | EVM_CUSTODY_ACCOUNT
   "adRecipient": "0x3b9f…7e8",
   "salt": "164980957715010214566213624064893475949",
-  "orderDecimals": 6,
+  "orderDecimals": 18,
   "adDecimals": 7,
   "deadline": "1791158400",
   "adSettlementSigner": "0x3b9f…7e8",
@@ -393,7 +403,8 @@ co-signing can start.
   "pinnedSlot": 0,                    // after the lock: the maker's key slot the lock pinned
   "adLegNullifier": "0x1c2b…1c2b",    // once both halves are on record
   "orderLegNullifier": "0x0e1d…0e1d",
-  "secretCustody": { "adLeg": "parties", "orderLeg": "parties" }
+  "secretCustody": { "adLeg": "parties", "orderLeg": "parties" },
+  "takeOver": { "fromCommitment": "0xeeee…ee", "toSlot": 3 }  // only after a take-over landed
 }
 ```
 
@@ -407,6 +418,10 @@ co-signing can start.
 - **`secretCustody`.** Per leg: `parties` (the owning party sent its half), `relayer` (the half was
   made under the earlier scheme, for older trades) or `pending` (none yet). The ad leg is the
   bridger's half, the order leg the maker's. See [Trade secrets](/v3/concepts/trade-secrets).
+- **`takeOver`.** Present once the settlement account
+  [took the trade over](#take-over-a-deleted-pods-trades) from a deleted pod's key. `fromCommitment`
+  is the pod's key and `toSlot` your slot. The order leg's half was the pod's, so the maker's
+  own-half check is skipped for it.
 
 Refusals are the same as for `/deposits`.
 
@@ -466,6 +481,7 @@ lock is held for 10 minutes; after that a new request quotes a fresh one.
 | `400` | `AdLock amount mismatch` | The hold does not match the order |
 | `409` | `mid-rotation` | The signer's newest key is live on one chain only; finish the rotation |
 | `409` | `no-pinnable-slot` | No key live on both chains outlives the order; register or rotate |
+| `409` | `owner-has-no-key` | The only co-signing key for this order is your pod's, and an order you lock yourself you co-sign yourself. Register a key of your own, or let the pod lock it |
 | `409` | `fee-changed` | The ad chain's fee split changed since the deposit. The trade cannot lock and is refunded after its deadline |
 | `400` | `half-nullifier-malformed`, `half-nullifier-not-a-field`, `half-key-malformed`, `half-key-unknown`, `half-ciphertext-malformed` | The half failed its checks. On `half-key-unknown`, fetch the key again and re-seal |
 | `409` | `half-conflict` | A different half is on record for the order leg; `nullifier` names it |
@@ -552,4 +568,165 @@ The chain decides, not the body: the relayer reads the escrow's order status at 
 | `403` | `Unauthorized` | Not a party |
 | `404` | `Trade update log not found` | Nothing pending: already confirmed, or replaced by a newer lock quote |
 | `409` | `Trade is cancelled (<cancelReason>); a landed action does not revive it` | The trade was cancelled for a reason other than an expired or replaced reservation |
+| `409` | `deposit-reviving` | The deposit landed just as the reservation expired. It is being restored and shows as active within a minute; send nothing again |
 | `503` | `The account's owner could not be read from the chain — retry` | |
+
+## Take over a deleted pod's trades
+
+A [hosted pod](/v3/guides/hosted-pods) co-signs with its own key, so each trade it locked is pinned to
+the pod's key on the ad chain. If the pod is deleted (or its request declined) before it co-signs a
+locked trade, nothing can co-sign that trade under its pin. Taking it over moves the pin to your own
+settlement key, so you co-sign it yourself.
+
+- **Who can.** The owner of the trade's settlement account: the caller must have that account among
+  their linked wallets and accounts. Anyone else gets `403`
+  `only the trade's settlement account can take it over`.
+- **Which trades.** A `LOCKED` trade pinned to the key of a pod that is deleted or declined, that the
+  pod had not co-signed yet, while the ad chain still accepts the move.
+- **What you sign.** One `RepinOrder` per trade, with your settlement account's wallet: EIP-712 typed
+  data for an EVM account, SEP-53 text for a Stellar one. It names the order, the pod's slot, your
+  slot and the pair nonce.
+- **What the relayer pays for.** It sends both chain calls from its own account, on the ad chain:
+  `approveRepin` on the key registry, then `repinOrder` on the `AdManager`.
+- **What happens next.** Once the move lands, the co-signatures made under the pod's key are dropped,
+  and both parties sign again. The ad chain then treats the order as one whose co-signed payout was
+  blocked, so a cancel or dispute on it waits the extra evidence time (see
+  [When a payout was blocked](/v3/concepts/deadlines-and-clocks#when-a-payout-was-blocked)).
+
+### Your trades on a pod's key
+
+`GET /v1/trades/pod-pinned` lists your `LOCKED`, `CLAIMED` and `DISPUTED` trades pinned to the key of
+any of your deleted or declined pods. With `?podId=` it lists those of one pod you own, whatever its
+status, which is what the delete screen reads. A `podId` that is not a pod you own is `404`. It reads
+only the relayer's records; ask `GET /v1/trades/:id/repin` for the chain's answer.
+
+```json
+{
+  "trades": [
+    {
+      "tradeId": "7c1e2d3a-5b4f-4e6a-9d8c-1f2e3a4b5c6d",
+      "status": "LOCKED",
+      "orderHash": "0x2f4e…1f3e",
+      "deadline": "1791158400",           // unix seconds
+      "podId": "c3d4e5f6-…",
+      "podLabel": "night-shift",
+      "standing": "take-over"
+    }
+  ]
+}
+```
+
+| `standing` | Meaning |
+| --- | --- |
+| `take-over` | You can move it to your own key once the pod is gone |
+| `maker-signed` | The pod already co-signed; it completes when the bridger signs |
+| `not-open` | Claimed or disputed; it ends through the cancel or dispute path |
+| `identity-is-pod` | The settlement account is the pod's own, so nobody can sign for it; it ends through the cancel path |
+
+### Can it be taken over now
+
+`GET /v1/trades/:id/repin` reads the chain and returns whether the trade can be taken over now, and
+your latest try. If a try stopped part-way (a relayer restart, say), this read picks it up again.
+
+```json
+{
+  "eligible": true,
+  "fromSlot": 2,                    // the pinned slot: the pod's key
+  "toSlot": 0,                      // your slot
+  "repinUntil": "1791157200",       // the last second the chain accepts the move
+  "filing": null
+}
+```
+
+When `eligible` is `false`, `reason` holds one of the codes below and `message` explains it.
+`filing` is your latest try, or `null`:
+
+```json
+{
+  "id": "e1f2a3b4-…",
+  "status": "APPROVED",             // PENDING | APPROVED | CONFIRMED | FAILED
+  "fromSlot": 2,
+  "toSlot": 0,
+  "nonce": "1",
+  "approveTxHash": "0x6a1f…92c0",   // once approveRepin landed
+  "error": null,
+  "attempts": 1,
+  "createdAt": "2026-10-04T10:00:00.000Z",
+  "updatedAt": "2026-10-04T10:00:40.000Z"
+}
+```
+
+| `filing.status` | Meaning |
+| --- | --- |
+| `PENDING` | Recorded; `approveRepin` is being sent |
+| `APPROVED` | `approveRepin` landed; `repinOrder` is being sent |
+| `CONFIRMED` | The trade is on your key |
+| `FAILED` | The try failed; `error` says why. A try that stalls is failed after about 10 minutes. Prepare and file again |
+
+### Prepare and file
+
+`POST /v1/trades/:id/repin/prepare` takes no body and returns the message to sign:
+
+```json
+{
+  "account": "0x3b9f…7e8",          // your settlement account
+  "account32": "0x0000…07e8",
+  "scheme": "secp256k1",            // secp256k1 | sep53
+  "env": "testnet",
+  "chainId": "11155111",            // the ad chain
+  "registry": "0x0000…4a1b",
+  "orderHash": "0x2f4e…1f3e",
+  "fromSlot": 2,
+  "toSlot": 0,
+  "nonce": "1",                     // the (account, order) pair's nonce
+  "repinUntil": "1791157200",
+  "signPayload": { "kind": "eip712", "typedData": { "…": "…" } }  // or { "kind": "sep53", "text": "…" }
+}
+```
+
+Sign `signPayload` with the settlement account's wallet, then send `POST /v1/trades/:id/repin`:
+
+```json
+{
+  "fromSlot": 2,
+  "toSlot": 0,
+  "nonce": "1",                     // as prepare served it
+  "ownerAuth": { "scheme": "secp256k1", "sig": "0x…" }  // 65-byte r||s||v, or the 64-byte ed25519 signature for sep53
+}
+```
+
+The relayer checks the signature against what prepare would serve now, records the try and answers
+`{ "filing": { … } }` in the shape above. It then sends the two calls. Poll
+`GET /v1/trades/:id/repin` until `filing.status` is `CONFIRMED` or `FAILED`.
+
+### Take-over refusals
+
+Both `prepare` and the filing refuse with these `409` codes. `GET /v1/trades/:id/repin` reports the
+same ones as `reason`.
+
+| Code | Meaning |
+| --- | --- |
+| `not-locked` | Only a `LOCKED` trade can be taken over. A claimed or disputed one ends through the cancel or dispute path |
+| `not-pod-pin` | The trade is not pinned to a pod's settlement key |
+| `pod-serving` | The pod has not been deleted, so it co-signs the trade itself |
+| `maker-signed` | The pod already co-signed; the trade completes when the bridger signs |
+| `not-open` | The ad chain no longer shows the order open |
+| `repin-closed` | The chain's last moment to move the key has passed; the trade ends through the cancel path |
+| `owner-has-no-key` | Your settlement account has no key of its own live on both chains for this order. Register or rotate one, then take it over |
+
+The filing adds these:
+
+| Code | Meaning |
+| --- | --- |
+| `repin-stale` | The pin, your slot or the pair nonce moved since you prepared. Prepare again and sign the new message |
+| `repin-in-flight` | This take-over is already being filed. Read `GET /v1/trades/:id/repin` |
+| `repin-landed` | This take-over already landed; the trade is on your key |
+| `repin-failed` | This take-over failed 5 times; the message says the last reason |
+
+| Status | Error | When |
+| --- | --- | --- |
+| `400` | `this account signs <scheme>, not <scheme>` | `ownerAuth.scheme` is the wrong scheme for the account |
+| `400` | `the owner signature does not verify for this take-over` | |
+| `403` | `only the trade's settlement account can take it over` | |
+| `404` | `Trade not found` | |
+| `503` | `… could not be read … retry shortly` | A key registry or the ad chain could not be read |

@@ -389,13 +389,16 @@ before signing. It writes nothing.
       "currentSlotId": null, "commitment": null, "matchesRecord": false }
   ],
   "keys": [                       // every key filed under the account, yours and any pod's
-    { "blsPubKey": "0xa1a1…a1", "commitment": "0x9e8d…", "holder": "OWNER", "podId": null }
+    { "blsPubKey": "0xa1a1…a1", "commitment": "0x9e8d…", "holder": "OWNER", "podId": null,
+      "derivationIndex": 0,       // the index the key was derived at; null when not reported
+      "podActive": null }         // a pod's key: false once the pod is deleted or declined; null for yours
   ]
 }
 ```
 
 - `action` is `REGISTER`, `REVOKE`, `CANCEL` or `SET_VALID_UNTIL` (a retirement).
 - `validUntil` on a slot is unix seconds; `"0"` means no expiry.
+- A pod's key with `podActive: false` stays live on chain until you revoke or retire it.
 - `unread: true` means that registry could not be read this time. Keep your last known state for that chain rather than
   reading the empty fields as "no key".
 
@@ -529,7 +532,8 @@ ad chain and maker, with the pair's live state. The account must be one of your 
   "approvals": [
     { "chainId": "1000002", "chainKind": "STELLAR", "registryAddress": "0x2222…2222",
       "registryId": "0x2222…2222", "env": "testnet", "maker": "0x3c3c…3c",
-      "makerAddress": "GB…", "adIds": ["123e4567-e89b-12d3-a456-426614174000"],
+      "makerAddress": "GB…", "makerKind": "WALLET",   // or STELLAR_AGENT_ACCOUNT | EVM_CUSTODY_ACCOUNT
+      "adIds": ["123e4567-e89b-12d3-a456-426614174000"],
       "approved": true, "nonce": "1" }
   ]
 }

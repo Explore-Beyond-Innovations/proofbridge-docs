@@ -54,7 +54,7 @@
                   "v3/concepts/deposit-proofs",
                   "v3/concepts/merkle-mountain-range",
                   "v3/concepts/order-hashing",
-                  "concepts/decimal-scaling",
+                  "v3/concepts/decimal-scaling",
                   "v3/concepts/agents",
                   "v3/concepts/supported-networks"
                 ]
@@ -85,6 +85,7 @@
                   "v3/guides/hosted-pods",
                   "v3/guides/connect-a-tool",
                   "v3/guides/network-dashboard",
+                  "v3/guides/in-app-help",
                   "v3/guides/report-a-bug"
                 ]
               },
