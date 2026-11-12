@@ -89,6 +89,7 @@
                   "v3/guides/linked-accounts",
                   "v3/guides/set-up-an-agent",
                   "v3/guides/hosted-pods",
+                  "v3/guides/run-a-pod",
                   "v3/guides/connect-a-tool",
                   "v3/guides/network-dashboard",
                   "v3/guides/in-app-help",
@@ -98,7 +99,8 @@
               {
                 "group": "Reference",
                 "pages": [
-                  "v3/reference/smart-contracts"
+                  "v3/reference/smart-contracts",
+                  "v3/reference/testing"
                 ]
               }
             ]

@@ -1,0 +1,209 @@
+---
+title: "Run and recover a pod"
+description: "Stop a pod in an emergency, rotate its settlement key without closing ads, and redeploy it with a new agent identity"
+---
+
+A **pod** is a running [agent](/v3/concepts/agents): a small program that
+locks orders on your ads, within the on-chain policy you set on your agent
+account. It holds two kinds of key, both created inside the pod:
+
+- an **agent key**, which the agent account's policy allows to lock
+  orders and do nothing else
+- a **settlement key**, registered under your ad's settlement signer, which
+  co-signs the trades the pod locks
+
+Neither key can withdraw funds, close an ad or change the policy. Your
+owner wallet keeps those powers, and its key never enters the pod.
+
+This page is for makers and operators who need to stop, rotate or rebuild
+a pod. To set one up, see [Set up an agent](/v3/guides/set-up-an-agent) and
+[Hosted pods](/v3/guides/hosted-pods).
+
+## Running your own or a hosted pod
+
+| | Self-hosted | Hosted pod |
+| --- | --- | --- |
+| Where it runs | your own machine | infrastructure ProofBridge operates |
+| Who holds the keys | you | the pod; only public keys leave it |
+| RPC endpoints | yours | yours, entered on the request |
+| Setup | you run the agent runtime and do the owner steps yourself | the setup page walks you through each step |
+| Recovery | the steps on this page | mostly buttons on the agent page; the steps below explain what they do |
+
+Either way, the same rules hold. The pod refuses to start without your own
+RPC endpoints, and it can only lock within your policy. It also needs a
+registered settlement key and a filed emergency stop before it goes live.
+
+## The kill levers
+
+Three levers stop a pod. They stop different things, so pick the one that
+matches what went wrong.
+
+| Lever | What it stops | Reach for it when |
+| --- | --- | --- |
+| **Retire the key** | the pod's settlement key, on every chain. It can no longer co-sign. | you want the pod's signatures to stop counting right away, whether or not the machine is still running |
+| **Stop the pod** | the program itself. It stops locking and signing. | the machine is misbehaving, or you are done with it. The key stays registered until you retire it. |
+| **Revoke the agent** | the agent key, on the agent account. It can never lock for that account again. | you think the agent key was copied or stolen. Revoking is instant and permanent. |
+
+On a hosted pod, **Kill Agent** on the agent page retires the key on every
+chain and then deletes the pod. **Revoke agent** is on the agent's
+**Policy** tab.
+
+When you revoke an agent, the **retirement service** also sends the
+emergency stop you signed for its settlement key, so one action ends both
+keys. You can retire the key yourself too: see
+[Retire a key](/v3/guides/register-a-settlement-key#retire-a-key).
+
+<Note>
+A suspected compromise needs all three: revoke the agent, retire the key,
+stop the pod. Revoking ends new locks. Retiring ends co-signing. Stopping
+the pod ends the program. A stolen agent key can still only do what the
+policy allows until you revoke it: lock within the caps, never withdraw.
+</Note>
+
+### What happens to open trades
+
+Stopping or killing a pod doesn't touch the escrows. Each open trade ends
+one of three ways:
+
+- the pod already co-signed it: it completes when the Bridger signs
+- the pod locked it but hadn't co-signed: you
+  [take it over](/v3/guides/hosted-pods#take-over-a-deleted-pods-trades)
+  and co-sign with your own key
+- it was claimed or disputed already, or nobody finishes it: it ends
+  through the [cancel path](/v3/concepts/cancels-and-refunds) at its
+  deadline, and both deposits are refunded
+
+## Rotate the settlement key without closing ads
+
+Rotation replaces the pod's settlement key while its ads stay open and
+keep trading. It works because a settlement signer can hold up to **five**
+live keys at once, each in its own **slot** on the key registry of each
+chain. See [Several keys at once](/v3/concepts/settlement-keys#several-keys-at-once).
+
+When the pod locks an order, the lock **pins** the slot the order was
+locked with. At payout, the ad chain checks the co-signature against that
+pinned key and no other. That gives rotation its shape:
+
+<Steps>
+  <Step title="Ask the pod for a new key">
+    The pod creates its next settlement key. On a hosted pod, start the
+    rotation from the agent page (or
+    [the API](/v3/api/pods#rotate)); the pod posts the new key within a
+    minute. A self-hosted pod's runtime writes a registration request for
+    the next key index.
+  </Step>
+  <Step title="Register it and file its emergency stop">
+    Sign one registration for the new key, which covers both chains, then
+    sign its emergency stop. The new key needs its own stop: the old
+    key's stop covers only the old slot.
+  </Step>
+  <Step title="Let new trades move over">
+    New locks pin the new key once it's live on both chains. Orders locked
+    before the rotation stay pinned to the old key and keep settling on it.
+  </Step>
+  <Step title="Retire the old key">
+    Retire the old key once its pinned orders have ended. The relayer stops
+    accepting co-signatures under a key 15 minutes before its retirement
+    time, so pick a time after the old key's open orders close.
+  </Step>
+</Steps>
+
+If you need the old key gone sooner, an open order can be **re-pinned** to
+a live key. A re-pin needs the settlement signer's consent, signed from the
+order's current pin, and the trade then settles normally under the new
+key. If the pinned key ends before the trade settles, both parties are
+asked to sign again. A trade that still can't settle ends through the
+cancel path, with both deposits refunded.
+
+<Tip>
+An ordinary redeploy or restart keeps the pod's identity. Its keys live on
+its own storage, which survives redeploys. Rotation is always a deliberate
+step, never a side effect.
+</Tip>
+
+## Redeploy a pod with a new agent identity
+
+Use this when the pod's machine or keys may have been exposed. Rotating the
+settlement key isn't enough then: the pod needs a **new agent key** too,
+which means new key files, a new agent on your account, and a new
+settlement key. Plan for about 10 minutes of your time, plus the time the
+registrations take to land on both chains.
+
+**On a hosted pod**, kill the agent and request a new pod:
+
+1. On the agent's **Policy** tab, click **Revoke agent**.
+2. Click **Kill Agent**: the key is retired on every chain, then the pod is
+   deleted.
+3. Take over any trades the old pod locked but hadn't co-signed (see
+   [What happens to open trades](#what-happens-to-open-trades)).
+4. On **My Agents → New Agent**, request a new hosted pod and follow
+   [the steps](/v3/guides/hosted-pods#the-steps). The new pod creates fresh
+   keys inside itself.
+
+**On a self-hosted pod**, the same steps by hand:
+
+<Steps>
+  <Step title="Revoke the old agent">
+    From your owner wallet, revoke the old agent key on the agent account,
+    on each chain it trades on. Revoking also sends the old settlement
+    key's emergency stop.
+  </Step>
+  <Step title="Stop the pod and clear its keys">
+    Stop the runtime. Remove the contents of its key directory, or point it
+    at a fresh, empty one. Keep the old files offline if you need them for
+    an investigation, but never start a pod from them again.
+  </Step>
+  <Step title="Start the pod with your RPC endpoints">
+    Start the runtime with your own RPC endpoints for each chain. It
+    refuses to start without them. On its first start it creates a new
+    agent key and a new settlement key.
+  </Step>
+  <Step title="Read the new identity">
+    The start-up log prints the pod's identity: its EVM address and its
+    Stellar account. The pod also writes a registration request with the
+    same public details. Nothing in it is secret.
+  </Step>
+  <Step title="Fund the new accounts">
+    The pod pays the network fee for each lock from its own account on each
+    chain. Send gas to the new addresses.
+  </Step>
+  <Step title="Bind the new agent">
+    From your owner wallet, set the agent policy on your agent account for
+    the pod's new agent key, with your settlement signer named in it. On
+    Stellar, if the ad has a guard rail, this change waits out the guard
+    rail's delay first. Bind the new agent with the relayer too, so it is
+    sent the trades.
+  </Step>
+  <Step title="Register the new settlement key">
+    Sign one registration for the pod's new settlement key, covering both
+    chains. The relayer files both and pays the gas. If your agent account
+    isn't yet an approved maker for your settlement signer, approve it now.
+  </Step>
+  <Step title="File the new emergency stop">
+    Sign the emergency stop for the new key. The old stop doesn't cover the
+    new slot, and the pod isn't ready to go live until this one is on file.
+  </Step>
+  <Step title="Go live">
+    Keep the rebuilt pod in dry run until the key is live on both chains
+    and the emergency stop is filed, then switch dry run off. The pod logs that
+    its settlement key is registered, and starts locking within the policy.
+  </Step>
+</Steps>
+
+<Warning>
+Clearing the key directory also clears the material the pod used to keep
+its half of each trade secret. Open trades of the old pod that it hadn't
+finished can't be finished by the new one. Take over the ones you can.
+The rest end through the cancel path at their deadline, with both deposits
+refunded.
+</Warning>
+
+## Limits
+
+- One pod trades on one EVM chain. A second EVM route needs a second pod
+  with its own identity.
+- The agent key is stored on the pod's own storage. It can only lock within
+  your policy and never withdraw, so a leak costs at most the policy's
+  limits until you revoke it.
+- ProofBridge can't retire your keys for you without the emergency stops
+  you signed. File one for every key you register.
